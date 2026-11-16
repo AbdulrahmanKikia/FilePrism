@@ -1,0 +1,9 @@
+[package]
+name = "fileprism-explorer-win"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Windows Explorer shell extension (M6 stub)"
+
+[dependencies]

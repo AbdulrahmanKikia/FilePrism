@@ -1,0 +1,33 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/formats-image",
+    "crates/formats-doc",
+    "crates/formats-data",
+    "crates/formats-archive",
+    "crates/history",
+    "crates/licensing",
+    "crates/explorer-win",
+    "apps/desktop/src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Abdulrahman Mussa"]
+repository = "https://github.com/AbdulrahmanKikia/FilePrism"
+
+[workspace.dependencies]
+fileprism-core = { path = "crates/core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

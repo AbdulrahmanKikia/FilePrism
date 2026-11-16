@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+build/
+target/
+.svelte-kit/
+package/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Logs / coverage
+*.log
+coverage/
+
+# Tauri / Vite timestamps
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*

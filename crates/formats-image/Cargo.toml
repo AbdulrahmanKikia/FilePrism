@@ -1,0 +1,10 @@
+[package]
+name = "fileprism-formats-image"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Image format converters (M2 stub)"
+
+[dependencies]
+fileprism-core = { workspace = true }
