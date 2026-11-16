@@ -14,10 +14,10 @@ Tiny, checkable items. Agents check off items when done; humans review at milest
 
 ## M1 — Core engine
 
-- [ ] Finalize `Converter` + `Job` / `Output` / progress types
-- [ ] Pipeline with progress + cancellation
-- [ ] SQLite history schema + migrations
-- [ ] Unit tests for pipeline
+- [x] Finalize `Converter` + `Job` / `Output` / progress types
+- [x] Pipeline with progress + cancellation
+- [x] SQLite history schema + migrations
+- [x] Unit tests for pipeline
 
 ## M2 — Image formats
 

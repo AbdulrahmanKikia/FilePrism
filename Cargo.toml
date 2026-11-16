@@ -21,9 +21,11 @@ repository = "https://github.com/AbdulrahmanKikia/FilePrism"
 
 [workspace.dependencies]
 fileprism-core = { path = "crates/core" }
+fileprism-history = { path = "crates/history" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
+rusqlite = { version = "0.32", features = ["bundled"] }
 
 [profile.release]
 codegen-units = 1
