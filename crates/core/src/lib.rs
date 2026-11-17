@@ -1,49 +1,22 @@
 //! FilePrism core conversion engine.
 //!
-//! Format crates implement [`Converter`]. Pipeline, progress, and cancellation
-//! land in M1.
+//! Provides the [`Converter`] trait, [`Job`] / [`Output`] types, a
+//! [`Pipeline`] with progress callbacks and cooperative cancellation, and
+//! shared error types used by format crates and the history layer.
 
-use serde::{Deserialize, Serialize};
-use thiserror::Error;
+mod cancel;
+mod converter;
+mod pipeline;
+mod progress;
+mod types;
 
-/// A conversion job request.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Job {
-    pub id: String,
-    pub input_path: String,
-    pub output_path: String,
-    pub input_format: String,
-    pub output_format: String,
-}
+pub use cancel::CancellationToken;
+pub use converter::Converter;
+pub use pipeline::Pipeline;
+pub use progress::{PipelineStage, Progress};
+pub use types::{Error, Job, Output};
 
-/// Result of a successful conversion.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Output {
-    pub job_id: String,
-    pub output_path: String,
-    pub bytes_written: u64,
-}
-
-/// Core conversion errors.
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("unsupported conversion: {0} → {1}")]
-    Unsupported(String, String),
-    #[error("io error: {0}")]
-    Io(String),
-    #[error("cancelled")]
-    Cancelled,
-    #[error("{0}")]
-    Other(String),
-}
-
-/// Trait implemented by every format module.
-pub trait Converter {
-    fn supports(&self, input: &str, output: &str) -> bool;
-    fn convert(&self, job: &Job) -> Result<Output, Error>;
-}
-
-/// Workspace identity check used by M0 smoke tests.
+/// Workspace identity check used by smoke tests / Tauri commands.
 pub fn crate_name() -> &'static str {
     "fileprism-core"
 }
@@ -55,5 +28,19 @@ mod tests {
     #[test]
     fn crate_name_is_stable() {
         assert_eq!(crate_name(), "fileprism-core");
+    }
+
+    #[test]
+    fn job_roundtrips_json() {
+        let job = Job {
+            id: "j1".into(),
+            input_path: "/in.png".into(),
+            output_path: "/out.webp".into(),
+            input_format: "png".into(),
+            output_format: "webp".into(),
+        };
+        let json = serde_json::to_string(&job).unwrap();
+        let back: Job = serde_json::from_str(&json).unwrap();
+        assert_eq!(job, back);
     }
 }

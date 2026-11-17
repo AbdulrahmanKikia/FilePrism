@@ -32,4 +32,4 @@ pnpm tauri:dev
 
 ## Spec
 
-Product & engineering baseline: milestone M0 scaffold complete. See `docs/TASKS.md`.
+Product & engineering baseline: M0 scaffold + M1 core engine (pipeline, history). See `docs/TASKS.md`.
