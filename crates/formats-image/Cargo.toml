@@ -4,7 +4,21 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "Image format converters (M2 stub)"
+description = "Image format converters (PNG, JPEG, WebP, AVIF, HEIC)"
 
 [dependencies]
 fileprism-core = { workspace = true }
+image = { version = "0.25", default-features = false, features = [
+    "png",
+    "jpeg",
+    "webp",
+    "avif",
+    "rayon",
+] }
+heic-rs = "0.1"
+webp = "0.3"
+# Pure-Rust AVIF decode (rav1d) — avoids system dav1d/pkg-config.
+avif-decode = { version = "3", default-features = false }
+
+[dev-dependencies]
+tempfile = "3"

@@ -14,7 +14,7 @@ pub use cancel::CancellationToken;
 pub use converter::Converter;
 pub use pipeline::Pipeline;
 pub use progress::{PipelineStage, Progress};
-pub use types::{Error, Job, Output};
+pub use types::{Error, Job, JobOptions, Output};
 
 /// Workspace identity check used by smoke tests / Tauri commands.
 pub fn crate_name() -> &'static str {
@@ -38,6 +38,7 @@ mod tests {
             output_path: "/out.webp".into(),
             input_format: "png".into(),
             output_format: "webp".into(),
+            options: JobOptions::default(),
         };
         let json = serde_json::to_string(&job).unwrap();
         let back: Job = serde_json::from_str(&json).unwrap();
