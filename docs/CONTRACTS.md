@@ -244,7 +244,7 @@ Also: `history.enabled` — `"false"` / `"0"` skips job recording (privacy mode)
 
 Frontend invoke wrappers live in `apps/desktop/src/lib/api.ts`. Command palette: Ctrl/⌘K.
 
-CI note: `cargo test --workspace --exclude fileprism-desktop` — the desktop `cdylib` link pulls rav1d/dav1d without `-fPIC` on Linux (rust-lld `R_X86_64_PC32`). Desktop remains covered by `cargo check` + `pnpm build`.
+CI note: `cargo test --workspace --exclude fileprism-desktop --exclude fileprism-wasm` — host `cdylib` link of desktop **or** wasm pulls rav1d/dav1d without `-fPIC` on Linux when `formats-image` `avif` is feature-unified (rust-lld `R_X86_64_PC32`). Desktop/wasm remain covered by `cargo check` + `pnpm build`; WASM unit tests run isolated as `cargo test -p fileprism-wasm` (keeps `default-features = false`, no dav1d).
 
 ## Explorer / shell IPC (M6)
 

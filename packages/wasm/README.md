@@ -55,6 +55,16 @@ node packages/wasm/scripts/build.mjs --release
 
 Requires: `rustup target add wasm32-unknown-unknown`, `cargo install wasm-bindgen-cli`.
 
+### Host tests (CI)
+
+Do **not** run `fileprism-wasm` inside `cargo test --workspace` on Linux: feature unification
+with desktop format crates enables `avif`/dav1d and breaks the host `cdylib` link
+(`R_X86_64_PC32`). Use:
+
+```bash
+cargo test -p fileprism-wasm
+```
+
 ## Desktop-only formats
 
 `is_desktop_only(fmt)` is `true` for RAR, HEIC/AVIF, PDF→image (pdfium), archives,
