@@ -168,7 +168,10 @@ mod tests {
             .expect("convert");
         assert!(!out.is_empty());
         assert!(ImageConverter::supports_pair("png", "webp"));
-        // HEIC is feature-gated off in this crate's dependency set.
-        assert!(!ImageConverter::supports_pair("heic", "png"));
+        // Do not assert HEIC is disabled here: Cargo feature-unifies
+        // `fileprism-formats-image` across the workspace, so desktop crates
+        // that enable default features (`heic`) also enable them for this
+        // crate during `cargo test --workspace`. The wasm32 / `default-features
+        // = false` slice still omits HEIC in the browser build.
     }
 }
