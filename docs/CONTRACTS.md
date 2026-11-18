@@ -84,6 +84,40 @@ Implementation notes:
 - HEIC decode via pure-Rust `heic-rs`
 - AVIF encode via `ravif` (image `avif` feature); decode via `avif-decode` (rav1d). CI installs `nasm` for rav1d asm.
 
+## Document formats (M3) — `fileprism-formats-doc`
+
+`DocConverter` implements `Converter`.
+
+| | Formats |
+|--|---------|
+| **Inputs** | `pdf`, `md`/`markdown` |
+| **Outputs** | `png`, `jpg`/`jpeg`, `txt`/`text`, `html`/`htm`, `pdf` |
+
+M3 checklist pairs: PDF→PNG/JPG, PDF→text, MD→HTML, MD→PDF (plain-text spike via `printpdf`).
+
+Implementation notes:
+- Markdown→HTML via `pulldown-cmark`
+- Markdown→PDF spike: flatten markdown lines into Helvetica text with `printpdf` (no CSS layout)
+- PDF→text via `pdf-extract`
+- PDF→PNG/JPG: portable text-raster (`pdf-extract` + `ab_glyph` + embedded Roboto). Full page paint (pdfium) deferred until a no-bindgen CI path exists.
+
+## Data formats (M3) — `fileprism-formats-data`
+
+`DataConverter` implements `Converter`.
+
+| | Formats |
+|--|---------|
+| **Inputs** | `json`, `csv`, `yaml`/`yml`, `xlsx` |
+| **Outputs** | `json`, `csv`, `yaml`/`yml`, `xlsx` |
+
+M3 checklist pairs: JSON↔CSV, JSON↔YAML, CSV↔XLSX.
+
+Implementation notes:
+- JSON/CSV via `serde_json` + `csv`
+- YAML via `serde_yaml`
+- XLSX read via `calamine`; write via `rust_xlsxwriter`
+- JSON→CSV requires a JSON array of objects (or equivalent tabular shape)
+
 ## History schema (M1) — `fileprism-history`
 
 SQLite via `rusqlite` (bundled). Migrations in `crates/history/migrations/`; version tracked in `schema_migrations`.
