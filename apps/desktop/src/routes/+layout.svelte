@@ -1,9 +1,26 @@
 <script lang="ts">
   import "$lib/styles/tokens.css";
+  import ArchivesView from "$lib/components/ArchivesView.svelte";
+  import CommandPalette from "$lib/components/CommandPalette.svelte";
+  import CompressView from "$lib/components/CompressView.svelte";
+  import ConvertView from "$lib/components/ConvertView.svelte";
+  import HistoryView from "$lib/components/HistoryView.svelte";
+  import SettingsView from "$lib/components/SettingsView.svelte";
   import Sidebar, { type NavId } from "$lib/components/Sidebar.svelte";
+  import {
+    applySettingsToDom,
+    DEFAULT_SETTINGS,
+    loadHistoryEnabled,
+    loadUiSettings,
+    type UiSettings,
+  } from "$lib/settings.svelte";
 
   let { children } = $props();
   let active = $state<NavId>("home");
+  let paletteOpen = $state(false);
+  let settings = $state<UiSettings>({ ...DEFAULT_SETTINGS });
+  let historyEnabled = $state(true);
+  let shellEl: HTMLElement | undefined = $state();
 
   const labels: Record<NavId, string> = {
     home: "Home",
@@ -20,21 +37,76 @@
   function onNavigate(id: NavId) {
     active = id;
   }
+
+  function apply(next: UiSettings = settings) {
+    const root = shellEl ?? document.documentElement;
+    applySettingsToDom(next, root);
+  }
+
+  $effect(() => {
+    let cancelled = false;
+    (async () => {
+      const loaded = await loadUiSettings();
+      const hist = await loadHistoryEnabled();
+      if (cancelled) return;
+      settings = loaded;
+      historyEnabled = hist;
+      apply(loaded);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  });
+
+  function onGlobalKey(e: KeyboardEvent) {
+    const meta = e.metaKey || e.ctrlKey;
+    if (meta && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      paletteOpen = !paletteOpen;
+    }
+  }
 </script>
 
-<div class="shell" data-theme="dark" data-accent="teal" data-glass="full">
+<svelte:window onkeydown={onGlobalKey} />
+
+<div
+  class="shell"
+  bind:this={shellEl}
+  data-theme={settings.theme === "system" ? undefined : settings.theme}
+  data-accent={settings.accent}
+  data-glass={settings.glass}
+  data-density={settings.density}
+  data-motion={settings.motion}
+  data-font={settings.font}
+>
   <Sidebar {active} onnavigate={onNavigate} />
   <main class="main">
     {#if active === "home"}
       {@render children()}
+    {:else if active === "convert"}
+      <ConvertView />
+    {:else if active === "compress"}
+      <CompressView />
+    {:else if active === "archives"}
+      <ArchivesView />
+    {:else if active === "history"}
+      <HistoryView />
+    {:else if active === "settings"}
+      <SettingsView
+        bind:settings
+        bind:historyEnabled
+        onchange={(next) => apply(next)}
+      />
     {:else}
-      <section class="placeholder">
+      <section class="placeholder view-enter">
         <h1>{labels[active]}</h1>
         <p>Coming in a later milestone.</p>
       </section>
     {/if}
   </main>
 </div>
+
+<CommandPalette bind:open={paletteOpen} onnavigate={onNavigate} />
 
 <style>
   .shell {
@@ -59,5 +131,9 @@
   .placeholder p {
     margin: var(--space-2) 0 0;
     color: var(--color-muted);
+  }
+
+  .view-enter {
+    animation: view-enter var(--motion-base) var(--motion-ease);
   }
 </style>

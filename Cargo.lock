@@ -1634,6 +1634,11 @@ name = "fileprism-desktop"
 version = "0.1.0"
 dependencies = [
  "fileprism-core",
+ "fileprism-formats-archive",
+ "fileprism-formats-data",
+ "fileprism-formats-doc",
+ "fileprism-formats-image",
+ "fileprism-history",
  "serde",
  "serde_json",
  "tauri",

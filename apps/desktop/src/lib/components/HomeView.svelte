@@ -32,7 +32,7 @@
     ondrop={onDrop}
   >
     <p class="drop-title">Drop files here</p>
-    <p class="drop-hint">or choose a conversion from the sidebar</p>
+    <p class="drop-hint">or open Convert from the sidebar · press Ctrl/⌘K for commands</p>
   </div>
 
   <div class="panels">
@@ -52,18 +52,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
-    animation: enter var(--motion-base) var(--motion-ease);
-  }
-
-  @keyframes enter {
-    from {
-      opacity: 0;
-      transform: translateY(6px);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
+    animation: view-enter var(--motion-base) var(--motion-ease);
   }
 
   .hero h1 {
