@@ -99,7 +99,7 @@ Implementation notes:
 - Markdown→HTML via `pulldown-cmark`
 - Markdown→PDF spike: flatten markdown lines into Helvetica text with `printpdf` (no CSS layout)
 - PDF→text via `pdf-extract`
-- PDF→PNG/JPG: portable text-raster (`pdf-extract` + `ab_glyph` + embedded Roboto). Full page paint (pdfium) deferred until a no-bindgen CI path exists.
+- PDF→PNG/JPG: `pdfium-render` page rasterization; shared library for Pdfium 8125 is downloaded/cached at runtime (`PDFIUM_LIB_PATH` / `FILEPRISM_PDFIUM_CACHE` overrides)
 
 ## Data formats (M3) — `fileprism-formats-data`
 
