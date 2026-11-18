@@ -18,9 +18,11 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { workspace = true }
 serde_json = { workspace = true }
+interprocess = "2"
 fileprism-core = { workspace = true }
 fileprism-history = { workspace = true }
 fileprism-formats-image = { workspace = true }
 fileprism-formats-doc = { workspace = true }
 fileprism-formats-data = { workspace = true }
 fileprism-formats-archive = { workspace = true }
+fileprism-explorer-win = { path = "../../../crates/explorer-win" }

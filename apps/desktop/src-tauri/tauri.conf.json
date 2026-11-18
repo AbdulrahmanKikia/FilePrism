@@ -32,6 +32,15 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "resources": [
+      "../../../packaging/windows/sparse/AppxManifest.xml",
+      "../../../packaging/linux/fileprism.desktop"
+    ],
+    "windows": {
+      "nsis": {
+        "installerHooks": "../../../packaging/windows/nsis-hooks.nsh"
+      }
+    }
   }
 }

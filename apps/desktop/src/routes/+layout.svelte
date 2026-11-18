@@ -7,6 +7,12 @@
   import HistoryView from "$lib/components/HistoryView.svelte";
   import SettingsView from "$lib/components/SettingsView.svelte";
   import Sidebar, { type NavId } from "$lib/components/Sidebar.svelte";
+  import { isTauri } from "$lib/api";
+  import {
+    applyShellFiles,
+    navForAction,
+    type ShellFilesPayload,
+  } from "$lib/shell.svelte";
   import {
     applySettingsToDom,
     DEFAULT_SETTINGS,
@@ -55,6 +61,24 @@
     })();
     return () => {
       cancelled = true;
+    };
+  });
+
+  $effect(() => {
+    if (!isTauri()) return;
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    (async () => {
+      const { listen } = await import("@tauri-apps/api/event");
+      if (cancelled) return;
+      unlisten = await listen<ShellFilesPayload>("shell-files", (event) => {
+        applyShellFiles(event.payload);
+        active = navForAction(event.payload.action);
+      });
+    })();
+    return () => {
+      cancelled = true;
+      unlisten?.();
     };
   });
 

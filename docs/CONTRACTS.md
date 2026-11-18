@@ -246,9 +246,46 @@ Frontend invoke wrappers live in `apps/desktop/src/lib/api.ts`. Command palette:
 
 CI note: `cargo test --workspace --exclude fileprism-desktop` — the desktop `cdylib` link pulls rav1d/dav1d without `-fPIC` on Linux (rust-lld `R_X86_64_PC32`). Desktop remains covered by `cargo check` + `pnpm build`.
 
-## Explorer IPC (planned M6)
+## Explorer / shell IPC (M6)
 
-Named-pipe payload: list of absolute file paths from Windows shell extension to desktop app. Schema TBD in M6.
+### Transport
+
+| Platform | Transport | Name |
+|----------|-----------|------|
+| Windows | Named pipe | `\\.\pipe\fileprism-shell-v1` (leaf `fileprism-shell-v1`) |
+| Linux / macOS | Local socket (same leaf name via `interprocess`) | `fileprism-shell-v1` |
+
+Also accepted at process start: CLI `--shell-open <action> <paths…>` (used when the pipe is down, and by Linux `.desktop` actions).
+
+### Message (one UTF-8 JSON line, `\n`-terminated)
+
+```json
+{ "v": 1, "action": "open", "paths": ["C:\\abs\\file.png", "D:\\other.jpg"] }
+```
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `v` | `u32` | Must be `1` (`SHELL_IPC_VERSION`) |
+| `action` | string | `open` \| `convert` \| `compress` \| `extract` (default `open`) |
+| `paths` | `string[]` | Absolute filesystem paths; must be non-empty |
+
+Defined in `fileprism-explorer-win::ipc` (`ShellOpenMessage`, `ShellAction`). Desktop listens in `apps/desktop/src-tauri/src/shell_ipc.rs` and emits the Tauri event `shell-files` with the same payload. Frontend store: `apps/desktop/src/lib/shell.svelte.ts`.
+
+### Windows Explorer DLL
+
+- Crate: `fileprism-explorer-win` (`cdylib` + `rlib`)
+- COM: `IExplorerCommand` + `IClassFactory`
+- CLSID: `{8F3A2B1C-6D4E-4F9A-9B2C-1E5D7A8F3C4E}`
+- On Invoke: collect `SIGDN_FILESYSPATH` paths → named-pipe handoff → fall back to `ShellExecuteW` of `FilePrism.exe --shell-open …`
+- Sparse package manifest: `packaging/windows/sparse/AppxManifest.xml`
+- Dev register/unregister: `packaging/windows/register-sparse-package.ps1` / `unregister-sparse-package.ps1`
+- NSIS hooks stub: `packaging/windows/nsis-hooks.nsh` (full signed registration in M7)
+
+### Linux desktop actions
+
+- File: `packaging/linux/fileprism.desktop`
+- Actions: Convert / Compress / Extract → `fileprism --shell-open <action> %F`
+- Install notes: `packaging/linux/README.md`
 
 ## License key (planned M7)
 

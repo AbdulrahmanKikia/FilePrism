@@ -51,9 +51,11 @@ Tiny, checkable items. Agents check off items when done; humans review at milest
 
 ## M6 — Explorer integration
 
-- [ ] Rust DLL with `IExplorerCommand`
-- [ ] Sparse package + named-pipe IPC
-- [ ] Installer wiring; Linux `.desktop` actions
+- [x] Rust DLL with `IExplorerCommand` (`crates/explorer-win`)
+- [x] Sparse package manifest + named-pipe / local-socket IPC
+- [x] Desktop listener + `shell-files` UI handoff; CLI `--shell-open`
+- [x] Installer wiring (NSIS hooks stub + register scripts; signed identity → M7)
+- [x] Linux `.desktop` actions (Nautilus/Dolphin/Thunar)
 
 ## M7 — Licensing & packaging
 

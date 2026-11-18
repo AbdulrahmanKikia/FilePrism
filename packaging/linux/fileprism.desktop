@@ -1,0 +1,26 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=FilePrism
+GenericName=File converter
+Comment=Local-first file conversion and compression
+Exec=fileprism %F
+Icon=fileprism
+Terminal=false
+Categories=Utility;FileTools;
+MimeType=image/png;image/jpeg;image/webp;image/avif;image/heic;application/pdf;text/markdown;application/json;text/csv;application/x-yaml;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;application/zip;application/x-tar;application/x-7z-compressed;application/vnd.rar;
+Keywords=convert;compress;archive;zip;pdf;image;
+StartupNotify=true
+Actions=Convert;Compress;Extract;
+
+[Desktop Action Convert]
+Name=Convert with FilePrism
+Exec=fileprism --shell-open convert %F
+
+[Desktop Action Compress]
+Name=Compress with FilePrism
+Exec=fileprism --shell-open compress %F
+
+[Desktop Action Extract]
+Name=Extract with FilePrism
+Exec=fileprism --shell-open extract %F

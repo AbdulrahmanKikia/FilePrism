@@ -1,5 +1,10 @@
 <script lang="ts">
   import { formatError, isTauri, runJob } from "$lib/api";
+  import {
+    getShellAction,
+    getShellPaths,
+    getShellRevision,
+  } from "$lib/shell.svelte";
   import JobForm from "./JobForm.svelte";
 
   let inputPath = $state("");
@@ -10,6 +15,19 @@
   let busy = $state(false);
   let message = $state<string | null>(null);
   let error = $state<string | null>(null);
+
+  $effect(() => {
+    const rev = getShellRevision();
+    const action = getShellAction();
+    const paths = getShellPaths();
+    if (rev === 0 || paths.length === 0) return;
+    if (action !== "extract") return;
+    inputPath = paths[0] ?? "";
+    const ext = inputPath.split(".").pop()?.toLowerCase() ?? "";
+    if (["zip", "tar", "7z", "rar"].includes(ext)) {
+      inputFormat = ext;
+    }
+  });
 
   async function onSubmit(e: Event) {
     e.preventDefault();
