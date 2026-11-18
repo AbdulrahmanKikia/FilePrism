@@ -100,8 +100,8 @@ export const CONVERSION_PAIRS: ConversionPair[] = [
     fromLabel: "PNG",
     toLabel: "AVIF",
     category: "image",
-    webReady: true,
-    blurb: "Encode PNG to AVIF in-browser for modern image delivery.",
+    webReady: false,
+    blurb: "AVIF encode is desktop-only in M8 — use FilePrism desktop for PNG→AVIF.",
   },
   {
     slug: "jpg-to-avif",
@@ -110,8 +110,8 @@ export const CONVERSION_PAIRS: ConversionPair[] = [
     fromLabel: "JPG",
     toLabel: "AVIF",
     category: "image",
-    webReady: true,
-    blurb: "Convert JPG to AVIF without sending photos to a server.",
+    webReady: false,
+    blurb: "JPG→AVIF ships on desktop FilePrism (offline, no ads).",
   },
   {
     slug: "avif-to-png",
@@ -120,8 +120,8 @@ export const CONVERSION_PAIRS: ConversionPair[] = [
     fromLabel: "AVIF",
     toLabel: "PNG",
     category: "image",
-    webReady: true,
-    blurb: "Decode AVIF to PNG locally for maximum compatibility.",
+    webReady: false,
+    blurb: "AVIF decode is desktop-only for M8 — convert offline with the desktop app.",
   },
   {
     slug: "avif-to-jpg",
@@ -130,8 +130,8 @@ export const CONVERSION_PAIRS: ConversionPair[] = [
     fromLabel: "AVIF",
     toLabel: "JPG",
     category: "image",
-    webReady: true,
-    blurb: "Open AVIF files as JPG — free, private, browser-based.",
+    webReady: false,
+    blurb: "Open AVIF as JPG with desktop FilePrism’s local pipeline.",
   },
   // Image — desktop-preferred / limited web
   {
@@ -162,8 +162,8 @@ export const CONVERSION_PAIRS: ConversionPair[] = [
     fromLabel: "JSON",
     toLabel: "CSV",
     category: "data",
-    webReady: true,
-    blurb: "Flatten JSON to CSV in your browser — no upload required.",
+    webReady: false,
+    blurb: "JSON↔CSV is on desktop FilePrism today — web stays image-focused for M8.",
   },
   {
     slug: "csv-to-json",
@@ -172,8 +172,8 @@ export const CONVERSION_PAIRS: ConversionPair[] = [
     fromLabel: "CSV",
     toLabel: "JSON",
     category: "data",
-    webReady: true,
-    blurb: "Turn CSV tables into JSON objects, entirely client-side.",
+    webReady: false,
+    blurb: "Turn CSV into JSON offline with desktop FilePrism (batch, no ads).",
   },
   {
     slug: "json-to-yaml",
@@ -182,8 +182,8 @@ export const CONVERSION_PAIRS: ConversionPair[] = [
     fromLabel: "JSON",
     toLabel: "YAML",
     category: "data",
-    webReady: true,
-    blurb: "Convert JSON config to YAML without leaving the page.",
+    webReady: false,
+    blurb: "JSON→YAML conversion is a desktop FilePrism feature for M8.",
   },
   {
     slug: "yaml-to-json",
@@ -192,8 +192,8 @@ export const CONVERSION_PAIRS: ConversionPair[] = [
     fromLabel: "YAML",
     toLabel: "JSON",
     category: "data",
-    webReady: true,
-    blurb: "Parse YAML into JSON locally with FilePrism Web.",
+    webReady: false,
+    blurb: "Parse YAML to JSON with the desktop app’s local pipeline.",
   },
   {
     slug: "csv-to-xlsx",
@@ -202,8 +202,8 @@ export const CONVERSION_PAIRS: ConversionPair[] = [
     fromLabel: "CSV",
     toLabel: "XLSX",
     category: "data",
-    webReady: true,
-    blurb: "Build an Excel workbook from CSV in the browser.",
+    webReady: false,
+    blurb: "Build XLSX from CSV offline on desktop FilePrism.",
   },
   {
     slug: "xlsx-to-csv",
@@ -212,10 +212,10 @@ export const CONVERSION_PAIRS: ConversionPair[] = [
     fromLabel: "XLSX",
     toLabel: "CSV",
     category: "data",
-    webReady: true,
-    blurb: "Export spreadsheet sheets to CSV without cloud sync.",
+    webReady: false,
+    blurb: "Export spreadsheets to CSV with desktop FilePrism — no cloud sync.",
   },
-  // Documents — mostly desktop (pdfium)
+  // Documents — desktop (pdfium / doc converters)
   {
     slug: "md-to-html",
     from: "md",
@@ -223,8 +223,8 @@ export const CONVERSION_PAIRS: ConversionPair[] = [
     fromLabel: "Markdown",
     toLabel: "HTML",
     category: "document",
-    webReady: true,
-    blurb: "Render Markdown to HTML in your browser for free.",
+    webReady: false,
+    blurb: "Markdown→HTML is desktop-ready; web M8 focuses on PNG/JPG/WebP.",
   },
   {
     slug: "pdf-to-png",
@@ -295,9 +295,9 @@ export const FEATURED_SLUGS = [
   "png-to-webp",
   "jpg-to-webp",
   "webp-to-png",
-  "png-to-avif",
-  "json-to-csv",
-  "md-to-html",
+  "webp-to-jpg",
+  "png-to-jpg",
+  "jpg-to-png",
 ] as const;
 
 export function featuredPairs(): ConversionPair[] {

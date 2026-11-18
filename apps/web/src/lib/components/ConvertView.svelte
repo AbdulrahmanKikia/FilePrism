@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { page } from "$app/state";
+  import { onMount } from "svelte";
   import { addHistory } from "$lib/history";
   import { loadHistoryEnabled } from "$lib/settings.svelte";
   import {
@@ -22,6 +24,14 @@
   let engineLabel = $state("detecting…");
   let dragOver = $state(false);
   let previewUrl = $state<string | null>(null);
+
+  /** Lane C SEO deep-link: /convert?from=png&to=webp */
+  onMount(() => {
+    const from = normalizeImageFormat(page.url.searchParams.get("from") ?? "");
+    const to = normalizeImageFormat(page.url.searchParams.get("to") ?? "");
+    if (from && WEB_IMAGE_FORMATS.includes(from)) inputFormat = from;
+    if (to && WEB_IMAGE_FORMATS.includes(to)) outputFormat = to;
+  });
 
   $effect(() => {
     let cancelled = false;

@@ -214,14 +214,13 @@
   }
 
   .copy h2 {
-    margin: 0 0 0.75rem;
+    margin: 1.75rem 0 0.75rem;
     font-family: var(--font-display);
     font-size: 1.15rem;
   }
 
-  .copy h2 + h2,
-  .copy p + h2 {
-    margin-top: 1.75rem;
+  .copy h2:first-child {
+    margin-top: 0;
   }
 
   .copy ol {
