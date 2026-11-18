@@ -13,9 +13,10 @@ Files never leave the device by default. Shared Rust core (`fileprism-core`) pow
 ## Layout
 
 ```
-crates/          # fileprism-core + format / history / licensing / explorer stubs
-apps/desktop/    # Tauri + SvelteKit desktop app
-docs/            # CONTRACTS.md, TASKS.md
+crates/            # core, formats, history, licensing, explorer-win (shell DLL)
+apps/desktop/      # Tauri + SvelteKit desktop app
+packaging/         # Windows sparse package + Linux .desktop actions
+docs/              # CONTRACTS.md, TASKS.md
 ```
 
 ## Develop
@@ -30,6 +31,11 @@ pnpm build
 pnpm tauri:dev
 ```
 
+## Shell integration (M6)
+
+- **Windows:** build `fileprism-explorer-win`, then run `packaging/windows/register-sparse-package.ps1` (dev). Context menu sends paths over `\\.\pipe\fileprism-shell-v1`.
+- **Linux:** install `packaging/linux/fileprism.desktop` (see `packaging/linux/README.md`).
+
 ## Spec
 
-Product & engineering baseline: M0–M2 (scaffold, core engine, image formats). See `docs/TASKS.md`.
+Product & engineering baseline through M6 (Explorer / shell integration). See `docs/TASKS.md` and `docs/CONTRACTS.md`.

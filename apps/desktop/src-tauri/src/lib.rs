@@ -1,4 +1,7 @@
-//! FilePrism desktop shell — Tauri commands wired to core / history / formats (M5).
+//! FilePrism desktop shell — Tauri commands wired to core / history / formats (M5)
+//! plus Explorer / desktop shell IPC (M6).
+
+mod shell_ipc;
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
@@ -192,9 +195,11 @@ fn open_history_store(app: &tauri::App) -> Result<HistoryStore, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let args: Vec<String> = std::env::args().collect();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .setup(|app| {
+        .setup(move |app| {
             let store = open_history_store(app).unwrap_or_else(|err| {
                 eprintln!("FilePrism: falling back to in-memory history ({err})");
                 HistoryStore::open_in_memory().expect("in-memory history")
@@ -202,6 +207,9 @@ pub fn run() {
             app.manage(AppState {
                 history: Mutex::new(store),
             });
+
+            shell_ipc::start_listener(app.handle().clone());
+            shell_ipc::consume_cli_args(app.handle(), &args);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

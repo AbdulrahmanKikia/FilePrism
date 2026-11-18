@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { getShellPaths, getShellRevision } from "$lib/shell.svelte";
+
   let dragOver = $state(false);
 
   function onDragOver(e: DragEvent) {
@@ -14,6 +16,11 @@
     e.preventDefault();
     dragOver = false;
   }
+
+  const shellPaths = $derived.by(() => {
+    const _ = getShellRevision();
+    return getShellPaths();
+  });
 </script>
 
 <section class="home">
@@ -21,6 +28,13 @@
     <h1>Home</h1>
     <p class="lede">Convert, compress, and organize files — locally, privately.</p>
   </header>
+
+  {#if shellPaths.length > 0}
+    <p class="shell-banner" role="status">
+      Shell sent {shellPaths.length} path{shellPaths.length === 1 ? "" : "s"} —
+      opened in the matching view.
+    </p>
+  {/if}
 
   <div
     class="dropzone"
@@ -65,6 +79,16 @@
   .lede {
     margin: var(--space-2) 0 0;
     color: var(--color-muted);
+  }
+
+  .shell-banner {
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    color: var(--color-text);
+    font-size: var(--font-size-sm);
   }
 
   .dropzone {

@@ -1,0 +1,5 @@
+LIBRARY fileprism_explorer_win
+EXPORTS
+    DllCanUnloadNow PRIVATE
+    DllGetClassObject PRIVATE
+    DllMain PRIVATE

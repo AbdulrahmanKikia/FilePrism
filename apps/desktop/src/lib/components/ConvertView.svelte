@@ -1,5 +1,10 @@
 <script lang="ts">
   import { formatError, isTauri, runJob, type JobOptions } from "$lib/api";
+  import {
+    getShellAction,
+    getShellPaths,
+    getShellRevision,
+  } from "$lib/shell.svelte";
   import JobForm from "./JobForm.svelte";
 
   const INPUT_FORMATS = [
@@ -39,6 +44,19 @@
   let busy = $state(false);
   let message = $state<string | null>(null);
   let error = $state<string | null>(null);
+
+  $effect(() => {
+    const rev = getShellRevision();
+    const action = getShellAction();
+    const paths = getShellPaths();
+    if (rev === 0 || paths.length === 0) return;
+    if (action !== "open" && action !== "convert") return;
+    inputPath = paths[0] ?? "";
+    const ext = inputPath.split(".").pop()?.toLowerCase() ?? "";
+    if (INPUT_FORMATS.includes(ext) || (ext === "jpeg" && INPUT_FORMATS.includes("jpg"))) {
+      inputFormat = ext === "jpeg" ? "jpg" : ext;
+    }
+  });
 
   async function onSubmit(e: Event) {
     e.preventDefault();
