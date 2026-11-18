@@ -1,0 +1,15 @@
+[package]
+name = "fileprism-unrar-sidecar"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "GPL-isolated UnRAR sidecar for FilePrism RAR extraction (do not link into main app)"
+
+[[bin]]
+name = "fileprism-unrar-sidecar"
+path = "src/main.rs"
+
+[dependencies]
+unrar = "0.5"
+clap = { version = "4", features = ["derive"] }

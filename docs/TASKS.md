@@ -35,10 +35,10 @@ Tiny, checkable items. Agents check off items when done; humans review at milest
 
 ## M4 — Archives
 
-- [ ] ZIP / TAR create+extract
-- [ ] 7z extract
-- [ ] RAR extract via sidecar process
-- [ ] Password-protected archive support
+- [x] ZIP / TAR create+extract
+- [x] 7z extract (and create via `sevenz-rust2`)
+- [x] RAR extract via sidecar process (`fileprism-unrar-sidecar`)
+- [x] Password-protected archive support (ZIP AES / 7z / RAR; TAR rejects)
 
 ## M5 — UI polish
 

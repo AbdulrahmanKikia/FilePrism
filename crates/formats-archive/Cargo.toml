@@ -4,7 +4,15 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "Archive create/extract (M4 stub)"
+description = "Archive create/extract (ZIP, TAR, 7z; RAR via sidecar)"
 
 [dependencies]
 fileprism-core = { workspace = true }
+zip = { version = "2", default-features = false, features = ["deflate", "aes-crypto"] }
+tar = "0.4"
+flate2 = "1"
+sevenz-rust2 = { version = "0.19", default-features = false, features = ["aes256", "compress", "util"] }
+walkdir = "2"
+
+[dev-dependencies]
+tempfile = "3"
