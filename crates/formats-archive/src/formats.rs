@@ -35,6 +35,7 @@ pub fn supports_pair(input: ArchiveFormat, output: ArchiveFormat) -> bool {
         (ArchiveFormat::Zip, ArchiveFormat::Dir) => true,
         (ArchiveFormat::Tar, ArchiveFormat::Dir) => true,
         (ArchiveFormat::SevenZ, ArchiveFormat::Dir) => true,
+        #[cfg(feature = "rar")]
         (ArchiveFormat::Rar, ArchiveFormat::Dir) => true,
         _ => false,
     }
@@ -56,6 +57,7 @@ mod tests {
     #[test]
     fn pairs() {
         assert!(supports_pair(ArchiveFormat::Dir, ArchiveFormat::Zip));
+        #[cfg(feature = "rar")]
         assert!(supports_pair(ArchiveFormat::Rar, ArchiveFormat::Dir));
         assert!(!supports_pair(ArchiveFormat::Rar, ArchiveFormat::Zip));
         assert!(!supports_pair(ArchiveFormat::Dir, ArchiveFormat::Rar));

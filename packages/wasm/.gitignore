@@ -1,0 +1,2 @@
+# Intermediate only — committed pkg/ is the published glue for Lane B.
+*.log

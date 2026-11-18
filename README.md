@@ -15,6 +15,7 @@ Files never leave the device by default. Shared Rust core (`fileprism-core`) pow
 ```
 crates/            # core, formats, history, licensing, explorer-win (shell DLL)
 apps/desktop/      # Tauri + SvelteKit desktop app
+apps/web/          # SvelteKit web client (browser convert via WASM / canvas stub)
 packaging/         # Windows sparse package + Linux .desktop actions
 docs/              # CONTRACTS.md, TASKS.md
 ```
@@ -26,10 +27,14 @@ Prerequisites: Rust stable, Node 20+, pnpm 9+, platform Tauri deps.
 ```bash
 pnpm install
 cargo check --workspace
-cargo test --workspace --exclude fileprism-desktop
+cargo test --workspace --exclude fileprism-desktop --exclude fileprism-wasm
+cargo test -p fileprism-wasm   # isolated: no AVIF/dav1d feature-unify
 pnpm build
 pnpm tauri:dev
+pnpm dev:web
 ```
+
+Linux CI excludes `fileprism-desktop` and `fileprism-wasm` from workspace `cargo test` (host `cdylib` + rav1d/dav1d `-fPIC` / `R_X86_64_PC32`). WASM unit tests run via `cargo test -p fileprism-wasm`. Browser artifacts: `pnpm --filter @fileprism/wasm build:release`.
 
 ## Shell integration (M6)
 

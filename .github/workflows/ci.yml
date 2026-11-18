@@ -29,10 +29,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf nasm g++
-      # Exclude the Tauri shell: its cdylib/staticlib link pulls rav1d/dav1d
-      # without -fPIC and fails rust-lld (R_X86_64_PC32) on Linux CI.
-      # Format/core crates still cover conversion tests; desktop stays in cargo check.
-      - run: cargo test --workspace --exclude fileprism-desktop
+      # Exclude host cdylib crates that pull rav1d/dav1d without -fPIC and fail
+      # rust-lld (R_X86_64_PC32) on Linux CI:
+      # - fileprism-desktop (Tauri shell)
+      # - fileprism-wasm (feature-unifies formats-image `avif` with other workspace crates)
+      # Format/core crates still cover conversion; desktop/wasm stay in cargo check.
+      # Isolated wasm test keeps formats-image default-features=false (no dav1d).
+      - run: cargo test --workspace --exclude fileprism-desktop --exclude fileprism-wasm
+      - name: cargo test fileprism-wasm (isolated, no AVIF)
+        run: cargo test -p fileprism-wasm
 
   pnpm-build:
     name: pnpm build

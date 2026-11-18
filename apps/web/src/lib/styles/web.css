@@ -1,0 +1,89 @@
+/*
+ * FilePrism Web — landing / SEO surface.
+ * Keeps product teal tokens; lighter marketing atmosphere than desktop shell.
+ */
+
+:root {
+  --color-bg: #f3f7f9;
+  --color-surface: rgba(255, 255, 255, 0.78);
+  --color-border: rgba(30, 55, 70, 0.12);
+  --color-text: #102028;
+  --color-muted: #5a6d7a;
+  --color-accent: #2f9e8f;
+  --color-accent-2: #1f7a6e;
+  --color-good: #3dba7a;
+  --color-warn: #d4a017;
+  --color-bad: #e05757;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --font-display: "Sora", "Segoe UI Variable", sans-serif;
+  --font-sans: "Source Sans 3", "Segoe UI", sans-serif;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+
+  --motion-fast: 150ms;
+  --motion-base: 220ms;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --page-max: 1080px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0e1419;
+    --color-surface: rgba(22, 32, 42, 0.72);
+    --color-border: rgba(148, 173, 196, 0.18);
+    --color-text: #e8eef4;
+    --color-muted: #8a9aab;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 7%, transparent), transparent 42%),
+    radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent),
+    var(--color-bg);
+  background-attachment: fixed;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

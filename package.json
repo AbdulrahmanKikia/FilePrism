@@ -5,8 +5,11 @@
   "description": "FilePrism monorepo — local-first file conversion & compression",
   "scripts": {
     "dev": "pnpm --filter @fileprism/desktop dev",
-    "build": "pnpm --filter @fileprism/desktop build",
-    "check": "pnpm --filter @fileprism/desktop check",
+    "dev:web": "pnpm --filter @fileprism/web dev",
+    "build": "pnpm --filter @fileprism/desktop build && pnpm --filter @fileprism/web build",
+    "build:desktop": "pnpm --filter @fileprism/desktop build",
+    "build:web": "pnpm --filter @fileprism/web build",
+    "check": "pnpm --filter @fileprism/desktop check && pnpm --filter @fileprism/web check",
     "tauri": "pnpm --filter @fileprism/desktop tauri",
     "tauri:dev": "pnpm --filter @fileprism/desktop tauri dev",
     "tauri:build": "pnpm --filter @fileprism/desktop tauri build"

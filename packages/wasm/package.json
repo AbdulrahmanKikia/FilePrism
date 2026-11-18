@@ -1,0 +1,30 @@
+{
+  "name": "@fileprism/wasm",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FilePrism WASM image convert bindings (wasm-bindgen)",
+  "type": "module",
+  "main": "./pkg/fileprism_wasm.js",
+  "module": "./pkg/fileprism_wasm.js",
+  "types": "./pkg/fileprism_wasm.d.ts",
+  "files": [
+    "pkg/**",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./pkg/fileprism_wasm.d.ts",
+      "import": "./pkg/fileprism_wasm.js",
+      "default": "./pkg/fileprism_wasm.js"
+    },
+    "./pkg/fileprism_wasm_bg.wasm": "./pkg/fileprism_wasm_bg.wasm"
+  },
+  "sideEffects": [
+    "./pkg/fileprism_wasm.js"
+  ],
+  "scripts": {
+    "build": "node ./scripts/build.mjs",
+    "build:release": "node ./scripts/build.mjs --release"
+  },
+  "license": "MIT"
+}

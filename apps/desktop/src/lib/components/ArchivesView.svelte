@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatError, isTauri, runJob } from "$lib/api";
+  import { suggestDirBeside } from "$lib/dialogs";
   import {
     getShellAction,
     getShellPaths,
@@ -16,17 +17,28 @@
   let message = $state<string | null>(null);
   let error = $state<string | null>(null);
 
+  const ARCHIVE_FILTERS = [
+    { name: "Archives", extensions: ["zip", "tar", "7z", "rar", "tgz", "gz"] },
+  ];
+
+  function applyInputPath(path: string) {
+    inputPath = path;
+    const ext = path.split(".").pop()?.toLowerCase() ?? "";
+    if (["zip", "tar", "7z", "rar"].includes(ext)) {
+      inputFormat = ext;
+    }
+    if (!outputPath.trim()) {
+      outputPath = suggestDirBeside(path);
+    }
+  }
+
   $effect(() => {
     const rev = getShellRevision();
     const action = getShellAction();
     const paths = getShellPaths();
     if (rev === 0 || paths.length === 0) return;
     if (action !== "extract") return;
-    inputPath = paths[0] ?? "";
-    const ext = inputPath.split(".").pop()?.toLowerCase() ?? "";
-    if (["zip", "tar", "7z", "rar"].includes(ext)) {
-      inputFormat = ext;
-    }
+    applyInputPath(paths[0] ?? "");
   });
 
   async function onSubmit(e: Event) {
@@ -81,6 +93,10 @@
       outputLabel="Extract folder"
       inputHint="Absolute path to the archive"
       outputHint="Destination directory for extracted files"
+      inputPicker="file"
+      outputPicker="directory"
+      inputFilters={ARCHIVE_FILTERS}
+      onInputPicked={applyInputPath}
     />
 
     <div class="actions">

@@ -1,6 +1,10 @@
 <script lang="ts">
   /** Shared path / format / options form used by Convert, Compress, Archives. */
 
+  import { isTauri } from "$lib/api";
+  import { pickPath, type PathKind } from "$lib/dialogs";
+  import type { DialogFilter } from "@tauri-apps/plugin-dialog";
+
   let {
     inputPath = $bindable(""),
     outputPath = $bindable(""),
@@ -18,6 +22,11 @@
     outputLabel = "Output path",
     inputHint = "Absolute path to the source file or folder",
     outputHint = "Absolute path for the result",
+    inputPicker = "file" as PathKind,
+    outputPicker = "save" as PathKind,
+    inputFilters = [] as DialogFilter[],
+    outputFilters = [] as DialogFilter[],
+    onInputPicked = undefined as ((path: string) => void) | undefined,
   }: {
     inputPath?: string;
     outputPath?: string;
@@ -35,19 +44,81 @@
     outputLabel?: string;
     inputHint?: string;
     outputHint?: string;
+    inputPicker?: PathKind;
+    outputPicker?: PathKind;
+    inputFilters?: DialogFilter[];
+    outputFilters?: DialogFilter[];
+    onInputPicked?: (path: string) => void;
   } = $props();
+
+  let browsing = $state<"input" | "output" | null>(null);
+
+  async function browseInput() {
+    if (!isTauri() || browsing) return;
+    browsing = "input";
+    try {
+      const path = await pickPath({
+        kind: inputPicker,
+        title: inputLabel,
+        defaultPath: inputPath || undefined,
+        filters: inputFilters.length ? inputFilters : undefined,
+      });
+      if (path) {
+        inputPath = path;
+        onInputPicked?.(path);
+      }
+    } finally {
+      browsing = null;
+    }
+  }
+
+  async function browseOutput() {
+    if (!isTauri() || browsing) return;
+    browsing = "output";
+    try {
+      const path = await pickPath({
+        kind: outputPicker,
+        title: outputLabel,
+        defaultPath: outputPath || inputPath || undefined,
+        filters: outputFilters.length ? outputFilters : undefined,
+      });
+      if (path) outputPath = path;
+    } finally {
+      browsing = null;
+    }
+  }
 </script>
 
 <div class="form">
   <label class="field">
     <span>{inputLabel}</span>
-    <input type="text" bind:value={inputPath} placeholder="C:\path\to\input" autocomplete="off" />
-    <small>{inputHint}</small>
+    <div class="path-row">
+      <input type="text" bind:value={inputPath} placeholder="C:\path\to\input" autocomplete="off" />
+      <button
+        type="button"
+        class="browse"
+        disabled={!isTauri() || browsing !== null}
+        onclick={browseInput}
+      >
+        {browsing === "input" ? "…" : "Browse"}
+      </button>
+    </div>
+    <small>{inputHint}{#if !isTauri()} · Browse needs the Tauri shell{/if}</small>
   </label>
 
   <label class="field">
     <span>{outputLabel}</span>
-    <input type="text" bind:value={outputPath} placeholder="C:\path\to\output" autocomplete="off" />
+    <div class="path-row">
+      <input type="text" bind:value={outputPath} placeholder="C:\path\to\output" autocomplete="off" />
+      <button
+        type="button"
+        class="browse"
+        disabled={!isTauri() || browsing !== null}
+        onclick={browseOutput}
+      >
+        {browsing === "output" ? "…" : "Browse"}
+      </button>
+    </div>
     <small>{outputHint}</small>
   </label>
 
@@ -144,6 +215,34 @@
   .field small {
     color: var(--color-muted);
     font-size: 0.75rem;
+  }
+
+  .path-row {
+    display: flex;
+    gap: var(--space-2);
+    align-items: stretch;
+  }
+
+  .path-row input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .browse {
+    appearance: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-text) 8%, transparent);
+    color: var(--color-text);
+    padding: var(--space-3) var(--space-4);
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .browse:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 
   input,

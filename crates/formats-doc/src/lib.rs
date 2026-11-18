@@ -23,6 +23,7 @@
 mod convert;
 mod formats;
 mod options;
+#[cfg(feature = "pdfium")]
 mod pdfium_lib;
 
 pub use convert::{write_fixture_pdf, DocConverter};

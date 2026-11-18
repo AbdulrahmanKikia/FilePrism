@@ -1,0 +1,210 @@
+/*
+ * FilePrism design tokens (spec §5)
+ * Driven by CSS custom properties for theme / accent / glass / density / motion.
+ */
+
+:root {
+  /* Color */
+  --color-bg: #0e1419;
+  --color-surface: rgba(22, 32, 42, 0.72);
+  --color-border: rgba(148, 173, 196, 0.18);
+  --color-text: #e8eef4;
+  --color-muted: #8a9aab;
+  --color-accent: #2f9e8f;
+  --color-accent-2: #1f7a6e;
+  --color-good: #3dba7a;
+  --color-warn: #d4a017;
+  --color-bad: #e05757;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* Space scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Typography */
+  --font-sans: "Segoe UI Variable", "Segoe UI", "IBM Plex Sans", system-ui, sans-serif;
+  --font-size-sm: 0.8125rem;
+  --font-size-base: 0.9375rem;
+  --font-size-lg: 1.125rem;
+
+  /* Glass */
+  --blur-glass: 18px;
+  --opacity-glass: 0.72;
+
+  /* Motion */
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+  --motion-ease: ease-out;
+
+  /* Layout */
+  --sidebar-width: 220px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-bg: #eef3f7;
+    --color-surface: rgba(255, 255, 255, 0.7);
+    --color-border: rgba(40, 60, 80, 0.12);
+    --color-text: #142028;
+    --color-muted: #5a6b7a;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+  }
+}
+
+[data-motion="reduced"] {
+  --motion-fast: 0ms;
+  --motion-base: 0ms;
+}
+
+[data-font="small"] {
+  --font-size-sm: 0.75rem;
+  --font-size-base: 0.875rem;
+  --font-size-lg: 1rem;
+}
+
+[data-font="large"] {
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1.0625rem;
+  --font-size-lg: 1.25rem;
+}
+
+@keyframes view-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes view-enter {
+    from,
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes fade-in {
+    from,
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+[data-motion="reduced"] {
+  /* Zero-duration tokens above; keep keyframes as no-ops when reduced via media too. */
+}
+
+[data-theme="light"] {
+  --color-bg: #eef3f7;
+  --color-surface: rgba(255, 255, 255, 0.7);
+  --color-border: rgba(40, 60, 80, 0.12);
+  --color-text: #142028;
+  --color-muted: #5a6b7a;
+}
+
+[data-theme="dark"] {
+  --color-bg: #0e1419;
+  --color-surface: rgba(22, 32, 42, 0.72);
+  --color-border: rgba(148, 173, 196, 0.18);
+  --color-text: #e8eef4;
+  --color-muted: #8a9aab;
+}
+
+[data-accent="blue"] {
+  --color-accent: #3b82f6;
+  --color-accent-2: #2563eb;
+}
+[data-accent="violet"] {
+  --color-accent: #8b5cf6;
+  --color-accent-2: #7c3aed;
+}
+[data-accent="teal"] {
+  --color-accent: #2f9e8f;
+  --color-accent-2: #1f7a6e;
+}
+[data-accent="orange"] {
+  --color-accent: #f59e0b;
+  --color-accent-2: #d97706;
+}
+[data-accent="pink"] {
+  --color-accent: #ec4899;
+  --color-accent-2: #db2777;
+}
+[data-accent="green"] {
+  --color-accent: #22c55e;
+  --color-accent-2: #16a34a;
+}
+
+[data-glass="off"] {
+  --blur-glass: 0px;
+  --opacity-glass: 1;
+}
+[data-glass="subtle"] {
+  --blur-glass: 10px;
+  --opacity-glass: 0.85;
+}
+[data-glass="full"] {
+  --blur-glass: 22px;
+  --opacity-glass: 0.65;
+}
+
+[data-density="compact"] {
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(47, 158, 143, 0.18), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(59, 130, 246, 0.12), transparent 50%),
+    var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+}

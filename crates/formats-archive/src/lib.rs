@@ -8,6 +8,7 @@
 
 mod convert;
 mod formats;
+#[cfg(feature = "rar")]
 mod rar_ops;
 mod sevenz_ops;
 mod tar_ops;
@@ -16,6 +17,7 @@ mod zip_ops;
 
 pub use convert::ArchiveConverter;
 pub use formats::{normalize_format, supports_pair, ArchiveFormat};
+#[cfg(feature = "rar")]
 pub use rar_ops::resolve_sidecar;
 
 use fileprism_core::{Converter, Error, Job, Output};

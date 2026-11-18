@@ -6,6 +6,11 @@ license.workspace = true
 authors.workspace = true
 description = "Archive create/extract (ZIP, TAR, 7z; RAR via sidecar)"
 
+[features]
+default = ["rar"]
+# RAR extract via `fileprism-unrar-sidecar` process (desktop only).
+rar = []
+
 [dependencies]
 fileprism-core = { workspace = true }
 zip = { version = "2", default-features = false, features = ["deflate", "aes-crypto"] }

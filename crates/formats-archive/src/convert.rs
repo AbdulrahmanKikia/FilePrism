@@ -5,7 +5,9 @@ use std::path::Path;
 use fileprism_core::{Error, Job, Output};
 
 use crate::formats::{normalize_format, supports_pair, ArchiveFormat};
-use crate::{rar_ops, sevenz_ops, tar_ops, zip_ops};
+#[cfg(feature = "rar")]
+use crate::rar_ops;
+use crate::{sevenz_ops, tar_ops, zip_ops};
 
 /// Archive create / extract converter (ZIP, TAR, 7z; RAR extract via sidecar).
 #[derive(Debug, Default, Clone, Copy)]
@@ -65,6 +67,7 @@ impl ArchiveConverter {
             (ArchiveFormat::SevenZ, ArchiveFormat::Dir) => {
                 sevenz_ops::extract_7z(input_path, output_path, password)?
             }
+            #[cfg(feature = "rar")]
             (ArchiveFormat::Rar, ArchiveFormat::Dir) => {
                 rar_ops::extract_rar(input_path, output_path, password)?
             }

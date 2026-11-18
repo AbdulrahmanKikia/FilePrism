@@ -4,15 +4,21 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
 
-use fileprism_core::{Error, Job, JobOptions, Output};
-use image::ImageEncoder;
-use pdfium_render::prelude::*;
+use fileprism_core::{Error, Job, Output};
+#[cfg(feature = "pdfium")]
+use fileprism_core::JobOptions;
 use printpdf::{BuiltinFont, Mm, PdfDocument};
 use pulldown_cmark::{Event, Options as MdOptions, Parser, Tag, TagEnd};
 
 use crate::formats::{normalize_format, supports_pair, DocFormat};
+#[cfg(feature = "pdfium")]
 use crate::options::{effective_quality, pdf_render_hint, PdfRenderHint};
+#[cfg(feature = "pdfium")]
 use crate::pdfium_lib;
+#[cfg(feature = "pdfium")]
+use image::ImageEncoder;
+#[cfg(feature = "pdfium")]
+use pdfium_render::prelude::*;
 
 /// Document converter for PDF / Markdown / HTML / text.
 #[derive(Debug, Default, Clone, Copy)]
@@ -50,6 +56,7 @@ impl DocConverter {
         ensure_parent_dir(Path::new(&job.output_path))?;
 
         match (input_fmt, output_fmt) {
+            #[cfg(feature = "pdfium")]
             (DocFormat::Pdf, DocFormat::Png) | (DocFormat::Pdf, DocFormat::Jpeg) => {
                 pdf_to_image(
                     Path::new(&job.input_path),
@@ -101,6 +108,8 @@ fn ensure_parent_dir(path: &Path) -> Result<(), Error> {
 /// Render the first page of a PDF to PNG or JPEG.
 ///
 /// Multi-page → multi-file output is deferred; M3 writes page 0 to `output`.
+/// Gated behind the `pdfium` feature (desktop only — not available in WASM).
+#[cfg(feature = "pdfium")]
 fn pdf_to_image(
     input: &Path,
     output: &Path,

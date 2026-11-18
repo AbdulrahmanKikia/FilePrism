@@ -39,12 +39,11 @@ pub fn normalize_format(raw: &str) -> Option<DocFormat> {
 
 /// Returns `true` when `input` → `output` is a supported M3 document pair.
 pub fn supports_pair(input: DocFormat, output: DocFormat) -> bool {
-    matches!(
-        (input, output),
-        (DocFormat::Pdf, DocFormat::Png)
-            | (DocFormat::Pdf, DocFormat::Jpeg)
-            | (DocFormat::Pdf, DocFormat::Text)
-            | (DocFormat::Markdown, DocFormat::Html)
-            | (DocFormat::Markdown, DocFormat::Pdf)
-    )
+    match (input, output) {
+        #[cfg(feature = "pdfium")]
+        (DocFormat::Pdf, DocFormat::Png) | (DocFormat::Pdf, DocFormat::Jpeg) => true,
+        (DocFormat::Pdf, DocFormat::Text) => true,
+        (DocFormat::Markdown, DocFormat::Html) | (DocFormat::Markdown, DocFormat::Pdf) => true,
+        _ => false,
+    }
 }

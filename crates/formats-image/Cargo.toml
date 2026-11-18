@@ -6,19 +6,29 @@ license.workspace = true
 authors.workspace = true
 description = "Image format converters (PNG, JPEG, WebP, AVIF, HEIC)"
 
+[features]
+default = ["heic", "avif", "webp-lossy", "parallel"]
+# Desktop HEIC decode (pure Rust, but heavy / not needed for web MVP).
+heic = ["dep:heic-rs"]
+# AVIF encode via image/ravif + decode via avif-decode (needs nasm on some hosts).
+avif = ["dep:avif-decode", "image/avif"]
+# Lossy WebP via libwebp (`webp` crate). Off for WASM (no C libwebp).
+webp-lossy = ["dep:webp"]
+# Rayon parallelism inside `image` — disable for WASM.
+parallel = ["image/rayon"]
+
 [dependencies]
 fileprism-core = { workspace = true }
 image = { version = "0.25", default-features = false, features = [
     "png",
     "jpeg",
     "webp",
-    "avif",
-    "rayon",
 ] }
-heic-rs = "0.1"
-webp = "0.3"
+heic-rs = { version = "0.1", optional = true }
+webp = { version = "0.3", optional = true }
 # Pure-Rust AVIF decode (rav1d) — avoids system dav1d/pkg-config.
-avif-decode = { version = "3", default-features = false }
+avif-decode = { version = "3", default-features = false, optional = true }
 
 [dev-dependencies]
 tempfile = "3"
+avif-decode = { version = "3", default-features = false }
