@@ -30,7 +30,7 @@
     { id: "settings", label: "Go to Settings", hint: "Navigation", nav: "settings" },
     { id: "presets", label: "Go to Presets", hint: "Coming later", nav: "presets" },
     { id: "watched", label: "Go to Watched folders", hint: "Coming later", nav: "watched" },
-    { id: "license", label: "Go to License", hint: "Coming later", nav: "license" },
+    { id: "license", label: "Go to License", hint: "Trial & activate", nav: "license" },
   ];
 
   const filtered = $derived.by(() => {

@@ -5,6 +5,7 @@
   import CompressView from "$lib/components/CompressView.svelte";
   import ConvertView from "$lib/components/ConvertView.svelte";
   import HistoryView from "$lib/components/HistoryView.svelte";
+  import LicenseView from "$lib/components/LicenseView.svelte";
   import SettingsView from "$lib/components/SettingsView.svelte";
   import Sidebar, { type NavId } from "$lib/components/Sidebar.svelte";
   import { isTauri } from "$lib/api";
@@ -121,6 +122,8 @@
         bind:historyEnabled
         onchange={(next) => apply(next)}
       />
+    {:else if active === "license"}
+      <LicenseView />
     {:else}
       <section class="placeholder view-enter">
         <h1>{labels[active]}</h1>

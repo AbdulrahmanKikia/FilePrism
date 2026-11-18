@@ -1,6 +1,7 @@
 //! FilePrism desktop shell — Tauri commands wired to core / history / formats (M5)
-//! plus Explorer / desktop shell IPC (M6).
+//! plus Explorer / desktop shell IPC (M6) and licensing (M7).
 
+mod license;
 mod shell_ipc;
 
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -16,7 +17,7 @@ use fileprism_history::{HistoryStore, JobRecord, JobStatus, Setting};
 use serde::Deserialize;
 use tauri::Manager;
 
-struct AppState {
+pub(crate) struct AppState {
     history: Mutex<HistoryStore>,
 }
 
@@ -199,6 +200,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(move |app| {
             let store = open_history_store(app).unwrap_or_else(|err| {
                 eprintln!("FilePrism: falling back to in-memory history ({err})");
@@ -210,6 +212,10 @@ pub fn run() {
 
             shell_ipc::start_listener(app.handle().clone());
             shell_ipc::consume_cli_args(app.handle(), &args);
+            // Stamp trial start on first launch (idempotent).
+            if let Some(state) = app.try_state::<AppState>() {
+                let _ = license::ensure_trial_started(&state);
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -222,6 +228,10 @@ pub fn run() {
             list_settings,
             get_setting,
             set_setting,
+            license::license_status,
+            license::activate_license,
+            license::deactivate_license,
+            license::purchase_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

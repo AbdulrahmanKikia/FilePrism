@@ -16,6 +16,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
+tauri-plugin-updater = "2.14"
 serde = { workspace = true }
 serde_json = { workspace = true }
 interprocess = "2"
@@ -25,4 +26,5 @@ fileprism-formats-image = { workspace = true }
 fileprism-formats-doc = { workspace = true }
 fileprism-formats-data = { workspace = true }
 fileprism-formats-archive = { workspace = true }
+fileprism-licensing = { workspace = true }
 fileprism-explorer-win = { path = "../../../crates/explorer-win" }
