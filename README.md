@@ -25,7 +25,7 @@ Prerequisites: Rust stable, Node 20+, pnpm 9+, platform Tauri deps.
 ```bash
 pnpm install
 cargo check --workspace
-cargo test --workspace
+cargo test --workspace --exclude fileprism-desktop
 pnpm build
 pnpm tauri:dev
 ```
