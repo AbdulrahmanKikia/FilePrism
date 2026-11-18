@@ -25,6 +25,7 @@ fn job(id: &str, input: &Path, output: &Path, from: &str, to: &str) -> Job {
             width: Some(100),
             height: Some(80),
             strip_metadata: Some(true),
+            ..Default::default()
         },
     }
 }

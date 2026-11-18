@@ -20,7 +20,7 @@ Defined in `fileprism-core`. Format crates implement this trait. First registere
 | `Job`    | `id`, `input_path`, `output_path`, `input_format`, `output_format`, `options` (`JobOptions`, default empty) |
 | `Output` | `job_id`, `output_path`, `bytes_written` |
 
-### `JobOptions` (M2)
+### `JobOptions` (M2 / M4)
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -28,6 +28,7 @@ Defined in `fileprism-core`. Format crates implement this trait. First registere
 | `width` | `Option<u32>` | Target width; aspect preserved if height omitted |
 | `height` | `Option<u32>` | Target height; aspect preserved if width omitted |
 | `strip_metadata` | `Option<bool>` | Default `true` (re-encode without EXIF) |
+| `password` | `Option<String>` | Archive password (ZIP AES / 7z / RAR). Default: none. Missing field deserializes as `null` |
 
 Serialization: `serde` JSON for IPC between UI and core (Tauri commands). Missing `options` deserializes as default.
 
@@ -43,6 +44,8 @@ Serialization: `serde` JSON for IPC between UI and core (Tauri commands). Missin
 | `run_silent(job, cancel)` | Same without progress callback |
 
 Stages (`PipelineStage`): `detect`, `validate`, `transform`, `write`, `complete`.
+
+Detect accepts an existing **file or directory** input (directories needed for archive create). Write verification accepts an output **file or directory** (directories for archive extract).
 
 ### Progress
 
@@ -117,6 +120,26 @@ Implementation notes:
 - YAML via `serde_yaml`
 - XLSX read via `calamine`; write via `rust_xlsxwriter`
 - JSON→CSV requires a JSON array of objects (or equivalent tabular shape)
+
+## Archive formats (M4) — `fileprism-formats-archive`
+
+`ArchiveConverter` implements `Converter`.
+
+| | Formats |
+|--|---------|
+| **Create inputs** | `file`, `dir` (`directory` / `folder`) |
+| **Create outputs** | `zip`, `tar`, `7z` (`sevenz` / `7zip`) |
+| **Extract inputs** | `zip`, `tar`, `7z`, `rar` |
+| **Extract output** | `dir` (`directory` / `folder` / `extract`) |
+
+M4 checklist: ZIP/TAR create+extract, 7z create+extract, RAR extract via sidecar, password-protected ZIP/7z/RAR.
+
+Implementation notes:
+- ZIP via `zip` crate (AES-256 when `JobOptions.password` set)
+- TAR via `tar` (passwords rejected — format has no native encryption)
+- 7z via pure-Rust `sevenz-rust2` (create + extract; AES when password set)
+- RAR extract **only** via separate binary `fileprism-unrar-sidecar` (`crates/unrar-sidecar`, links `unrar` / UnRAR). Main archive crate never links UnRAR. Path: `FILEPRISM_UNRAR_SIDECAR`, else next to current exe, else `PATH`
+- Create does not support RAR (licensing restriction)
 
 ## History schema (M1) — `fileprism-history`
 

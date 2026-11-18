@@ -14,6 +14,9 @@ pub struct JobOptions {
     pub height: Option<u32>,
     /// When `true`, strip EXIF/metadata on write (default: converter policy).
     pub strip_metadata: Option<bool>,
+    /// Password for encrypted archives (ZIP AES / 7z / RAR extract). Default: none.
+    #[serde(default)]
+    pub password: Option<String>,
 }
 
 /// A conversion job request.

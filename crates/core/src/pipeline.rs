@@ -128,9 +128,10 @@ fn detect_input(job: &Job) -> Result<(), Error> {
     if !path.exists() {
         return Err(Error::InputNotFound(job.input_path.clone()));
     }
-    if !path.is_file() {
+    // Files are the common case; directories are allowed for archive create (`dir` → zip/tar/7z).
+    if !path.is_file() && !path.is_dir() {
         return Err(Error::Validation(format!(
-            "input is not a file: {}",
+            "input is not a file or directory: {}",
             job.input_path
         )));
     }
@@ -161,6 +162,10 @@ fn validate_paths(job: &Job) -> Result<(), Error> {
 
 fn verify_output(output: &Output) -> Result<(), Error> {
     let path = Path::new(&output.output_path);
+    if path.is_dir() {
+        // Archive extract writes a directory tree; bytes_written is summed by the converter.
+        return Ok(());
+    }
     if !path.is_file() {
         return Err(Error::Io(format!(
             "converter did not write output file: {}",

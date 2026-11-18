@@ -136,6 +136,7 @@ fn resize_and_quality_options() {
             width: Some(50),
             height: None,
             strip_metadata: Some(true),
+            ..Default::default()
         },
     ));
     assert!(out.bytes_written > 0);

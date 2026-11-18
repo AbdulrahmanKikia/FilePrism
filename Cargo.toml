@@ -6,6 +6,7 @@ members = [
     "crates/formats-doc",
     "crates/formats-data",
     "crates/formats-archive",
+    "crates/unrar-sidecar",
     "crates/history",
     "crates/licensing",
     "crates/explorer-win",
