@@ -250,6 +250,7 @@ mod tests {
             output_path: output.to_string_lossy().into(),
             input_format: "txt".into(),
             output_format: "txt".into(),
+            options: Default::default(),
         };
 
         let events: Arc<Mutex<Vec<Progress>>> = Arc::new(Mutex::new(Vec::new()));
@@ -295,6 +296,7 @@ mod tests {
             output_path: "/tmp/out.txt".into(),
             input_format: "txt".into(),
             output_format: "txt".into(),
+            options: Default::default(),
         };
 
         let err = pipeline
@@ -315,6 +317,7 @@ mod tests {
             output_path: output.to_string_lossy().into(),
             input_format: "png".into(),
             output_format: "webp".into(),
+            options: Default::default(),
         };
 
         let err = pipeline
@@ -341,6 +344,7 @@ mod tests {
             output_path: output.to_string_lossy().into(),
             input_format: "txt".into(),
             output_format: "txt".into(),
+            options: Default::default(),
         };
 
         let cancel = CancellationToken::new();
@@ -369,6 +373,7 @@ mod tests {
             output_path: output.to_string_lossy().into(),
             input_format: "bad".into(),
             output_format: "worse".into(),
+            options: Default::default(),
         };
 
         let err = pipeline

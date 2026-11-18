@@ -362,6 +362,7 @@ mod tests {
             output_path: format!("/tmp/{id}-out.webp"),
             input_format: "png".into(),
             output_format: "webp".into(),
+            options: Default::default(),
         }
     }
 

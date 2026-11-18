@@ -13,14 +13,23 @@ pub trait Converter: Send + Sync {
 
 Defined in `fileprism-core`. Format crates implement this trait. First registered converter whose `supports` returns true wins.
 
-## Job / Output (M1)
+## Job / Output (M2)
 
-| Type     | Fields                                                             |
-|----------|--------------------------------------------------------------------|
-| `Job`    | `id`, `input_path`, `output_path`, `input_format`, `output_format` |
-| `Output` | `job_id`, `output_path`, `bytes_written`                           |
+| Type     | Fields |
+|----------|--------|
+| `Job`    | `id`, `input_path`, `output_path`, `input_format`, `output_format`, `options` (`JobOptions`, default empty) |
+| `Output` | `job_id`, `output_path`, `bytes_written` |
 
-Serialization: `serde` JSON for IPC between UI and core (Tauri commands).
+### `JobOptions` (M2)
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `quality` | `Option<u8>` | Encode quality `1..=100` (JPEG / WebP / AVIF). Default converter policy: 85 |
+| `width` | `Option<u32>` | Target width; aspect preserved if height omitted |
+| `height` | `Option<u32>` | Target height; aspect preserved if width omitted |
+| `strip_metadata` | `Option<bool>` | Default `true` (re-encode without EXIF) |
+
+Serialization: `serde` JSON for IPC between UI and core (Tauri commands). Missing `options` deserializes as default.
 
 ## Pipeline (M1)
 
@@ -58,6 +67,22 @@ Checked between pipeline stages. Clones share the same flag.
 ### Errors (`fileprism_core::Error`)
 
 `Unsupported`, `InputNotFound`, `Validation`, `Io`, `Cancelled`, `Other`.
+
+## Image formats (M2) — `fileprism-formats-image`
+
+`ImageConverter` implements `Converter`.
+
+| | Formats |
+|--|---------|
+| **Inputs** | `png`, `jpg`/`jpeg`, `webp`, `avif`, `heic`/`heif` |
+| **Outputs** | `png`, `jpg`/`jpeg`, `webp`, `avif` |
+
+M2 checklist pairs covered: PNG→WebP, JPG→WebP, HEIC→PNG/JPG, AVIF encode/decode (plus other raster pairs among the sets above). SVG deferred.
+
+Implementation notes:
+- Decode/encode via `image` (+ `webp` for lossy WebP quality)
+- HEIC decode via pure-Rust `heic-rs`
+- AVIF encode via `ravif` (image `avif` feature); decode via `avif-decode` (rav1d). CI installs `nasm` for rav1d asm.
 
 ## History schema (M1) — `fileprism-history`
 

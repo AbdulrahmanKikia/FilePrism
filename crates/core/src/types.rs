@@ -3,6 +3,19 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+/// Optional conversion knobs shared across format crates (M2+).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct JobOptions {
+    /// Encode quality `1..=100` (JPEG / WebP / AVIF). Default left to converter.
+    pub quality: Option<u8>,
+    /// Target width in pixels. Aspect preserved when only one of width/height is set.
+    pub width: Option<u32>,
+    /// Target height in pixels. Aspect preserved when only one of width/height is set.
+    pub height: Option<u32>,
+    /// When `true`, strip EXIF/metadata on write (default: converter policy).
+    pub strip_metadata: Option<bool>,
+}
+
 /// A conversion job request.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Job {
@@ -11,6 +24,9 @@ pub struct Job {
     pub output_path: String,
     pub input_format: String,
     pub output_format: String,
+    /// Format-specific options (quality, resize, …). Defaults to empty.
+    #[serde(default)]
+    pub options: JobOptions,
 }
 
 /// Result of a successful conversion.

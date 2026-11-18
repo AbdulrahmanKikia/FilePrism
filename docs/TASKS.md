@@ -21,11 +21,11 @@ Tiny, checkable items. Agents check off items when done; humans review at milest
 
 ## M2 — Image formats
 
-- [ ] PNG→WebP, JPG→WebP
-- [ ] HEIC→PNG/JPG
-- [ ] AVIF encode/decode
-- [ ] Resize + quality options
-- [ ] Integration tests per pair
+- [x] PNG→WebP, JPG→WebP
+- [x] HEIC→PNG/JPG
+- [x] AVIF encode/decode
+- [x] Resize + quality options
+- [x] Integration tests per pair
 
 ## M3 — Document & data
 
