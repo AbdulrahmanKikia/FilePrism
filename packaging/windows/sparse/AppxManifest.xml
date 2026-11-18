@@ -8,7 +8,8 @@
   DLL relative path (install layout): shell\fileprism_explorer_win.dll
 
   Dev registration: packaging/windows/register-sparse-package.ps1
-  Production signing + identity: M7 packaging milestone.
+  Production: set Identity/@Publisher to the Authenticode cert CN
+  (docs/packaging/code-signing.md). NSIS post-install attempts register.
 -->
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"

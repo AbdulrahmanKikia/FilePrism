@@ -279,7 +279,8 @@ Defined in `fileprism-explorer-win::ipc` (`ShellOpenMessage`, `ShellAction`). De
 - On Invoke: collect `SIGDN_FILESYSPATH` paths → named-pipe handoff → fall back to `ShellExecuteW` of `FilePrism.exe --shell-open …`
 - Sparse package manifest: `packaging/windows/sparse/AppxManifest.xml`
 - Dev register/unregister: `packaging/windows/register-sparse-package.ps1` / `unregister-sparse-package.ps1`
-- NSIS hooks stub: `packaging/windows/nsis-hooks.nsh` (full signed registration in M7)
+- NSIS hooks: `packaging/windows/nsis-hooks.nsh` (post-install best-effort sparse register; pre-uninstall remove)
+- Installer targets: NSIS + MSI (`tauri.conf.json` `bundle.targets`)
 
 ### Linux desktop actions
 
@@ -287,6 +288,56 @@ Defined in `fileprism-explorer-win::ipc` (`ShellOpenMessage`, `ShellAction`). De
 - Actions: Convert / Compress / Extract → `fileprism --shell-open <action> %F`
 - Install notes: `packaging/linux/README.md`
 
-## License key (planned M7)
+## License & entitlement (M7) — `fileprism-licensing`
 
-Offline Ed25519-signed license blob. Validation API TBD in M7.
+### Key format
+
+```
+FP1.<base64url(payload_json)>.<base64url(ed25519_sig)>
+```
+
+Signature covers raw UTF-8 payload bytes. Payload JSON:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `v` | `u32` | Must be `1` (`PAYLOAD_VERSION`) |
+| `lid` | string | License id |
+| `email` | string? | Optional |
+| `issued` | `i64` | Unix seconds UTC |
+| `updates_until` | `i64` | Unix seconds; typically issue + 1 year |
+
+Verifying key: embedded `EMBEDDED_PUBLIC_KEY_HEX`, override `FILEPRISM_LICENSE_PUBKEY`. Signing seed: secret `FILEPRISM_LICENSE_SIGNING_SEED` only (feature `mint`).
+
+### Trial
+
+| Constant | Value |
+|----------|-------|
+| `TRIAL_DAYS` | `14` (full-feature; spec §7 allows 7–14) |
+
+Settings keys: `license.trial_started_at` (unix secs string), `license.key` (full `FP1.…` string).
+
+### Entitlement (`resolve_entitlement`)
+
+| `kind.type` | `fullFeature` | Notes |
+|-------------|---------------|-------|
+| `licensed` | `true` | Fields: `lid`, `email?`, `updatesActive`, `updatesUntil` |
+| `trial` | `true` | `daysRemaining`, `endsAt` |
+| `trialExpired` | `false` | |
+| `notStarted` | `false` | Host should stamp trial start |
+
+### Tauri commands (M7)
+
+| Command | Args | Returns |
+|---------|------|---------|
+| `license_status` | — | `{ entitlement, hasStoredKey, checkoutUrl, trialDays, maskedKey }` |
+| `activate_license` | `key: string` | same as status (after verify + persist) |
+| `deactivate_license` | — | status with key cleared |
+| `purchase_url` | — | `string` (`FILEPRISM_CHECKOUT_URL` or Paddle placeholder) |
+
+Merchant: **Paddle** primary, Lemon Squeezy alternate — stubs in `docs/licensing/merchant.md` (no live secrets in repo).
+
+### Packaging / updater (M7)
+
+- Code signing docs: `docs/packaging/code-signing.md`
+- Auto-update: `tauri-plugin-updater` + `docs/packaging/auto-update.md`
+- Release workflow hooks: `.github/workflows/release.yml` (secrets for certs / updater key)

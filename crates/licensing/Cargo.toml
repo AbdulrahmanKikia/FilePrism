@@ -4,6 +4,21 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "Offline signed license key validation (M7 stub)"
+description = "Offline Ed25519 license key validation and trial entitlement"
+
+[features]
+default = []
+# Local / CI license minting. Requires FILEPRISM_LICENSE_SIGNING_SEED (32-byte hex).
+mint = ["dep:rand"]
 
 [dependencies]
+base64 = "0.22"
+ed25519-dalek = { version = "2.1", features = ["std"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+rand = { version = "0.8", optional = true }
+
+[dev-dependencies]
+ed25519-dalek = { version = "2.1", features = ["std", "rand_core"] }
+rand = "0.8"

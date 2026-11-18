@@ -59,8 +59,13 @@ Tiny, checkable items. Agents check off items when done; humans review at milest
 
 ## M7 — Licensing & packaging
 
-- [ ] Offline signed license validation
-- [ ] Merchant integration; Windows installer; code signing; auto-update
+- [x] Offline Ed25519 license validation (`crates/licensing`) + 14-day trial
+- [x] License UI + Tauri commands (`license_status` / activate / deactivate)
+- [x] Merchant stubs/docs — Paddle primary, Lemon Squeezy alternate
+- [x] Windows installer targets NSIS + MSI; NSIS sparse-register hooks
+- [x] Code signing documentation + release workflow secret hooks
+- [x] Tauri updater plugin config + docs (`docs/packaging/auto-update.md`)
+- [x] Update `docs/CONTRACTS.md` / `docs/TASKS.md`
 
 ## M8 — Web / WASM
 

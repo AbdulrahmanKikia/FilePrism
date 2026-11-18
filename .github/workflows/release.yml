@@ -1,0 +1,84 @@
+# Release / packaging hooks (M7).
+# Unsigned smoke builds run without secrets; signing steps need repo secrets.
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      sign:
+        description: "Sign Windows artifacts (requires cert secrets)"
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "v*"
+
+env:
+  CARGO_BUILD_JOBS: "1"
+
+jobs:
+  windows:
+    name: Windows NSIS/MSI
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Import Authenticode cert (optional)
+        shell: pwsh
+        env:
+          WINDOWS_CERT_PFX: ${{ secrets.WINDOWS_CERT_PFX }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+          WANT_SIGN: ${{ inputs.sign }}
+        run: |
+          if ($env:WANT_SIGN -ne "true" -or -not $env:WINDOWS_CERT_PFX) {
+            Write-Host "Skipping Authenticode import (unsigned or no WINDOWS_CERT_PFX)."
+            exit 0
+          }
+          $bytes = [Convert]::FromBase64String($env:WINDOWS_CERT_PFX)
+          $path = Join-Path $env:RUNNER_TEMP "fileprism-codesign.pfx"
+          [IO.File]::WriteAllBytes($path, $bytes)
+          Import-PfxCertificate -FilePath $path -CertStoreLocation Cert:\CurrentUser\My -Password (ConvertTo-SecureString $env:WINDOWS_CERT_PASSWORD -AsPlainText -Force) | Out-Null
+          Write-Host "PFX imported. Set bundle.windows.certificateThumbprint to WINDOWS_CERT_THUMBPRINT for Tauri."
+
+      - name: Build desktop bundles
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          # Cooler builds on shared runners as well.
+          $env:CARGO_BUILD_JOBS = "1"
+          pnpm --filter @fileprism/desktop exec tauri build -- -j 1
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: fileprism-windows-installers
+          path: |
+            apps/desktop/src-tauri/target/release/bundle/nsis/**
+            apps/desktop/src-tauri/target/release/bundle/msi/**
+          if-no-files-found: warn
+
+  notes:
+    name: Signing reminders
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Required secrets for a signed release:"
+          echo "  WINDOWS_CERT_PFX, WINDOWS_CERT_PASSWORD, WINDOWS_CERT_THUMBPRINT"
+          echo "  TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
+          echo "  FILEPRISM_LICENSE_SIGNING_SEED (fulfillment only)"
+          echo "Docs: docs/packaging/code-signing.md , docs/packaging/auto-update.md"

@@ -79,6 +79,49 @@ export async function setSetting(key: string, value: string): Promise<void> {
   return invoke("set_setting", { key, value });
 }
 
+/** M7 license / trial status from `fileprism-licensing`. */
+export type EntitlementKind =
+  | {
+      type: "licensed";
+      lid: string;
+      email?: string | null;
+      updatesActive: boolean;
+      updatesUntil: number;
+    }
+  | { type: "trial"; daysRemaining: number; endsAt: number }
+  | { type: "trialExpired" }
+  | { type: "notStarted" };
+
+export type Entitlement = {
+  kind: EntitlementKind;
+  fullFeature: boolean;
+  trialDays: number;
+};
+
+export type LicenseStatus = {
+  entitlement: Entitlement;
+  hasStoredKey: boolean;
+  checkoutUrl: string;
+  trialDays: number;
+  maskedKey: string | null;
+};
+
+export async function getLicenseStatus(): Promise<LicenseStatus> {
+  return invoke<LicenseStatus>("license_status");
+}
+
+export async function activateLicense(key: string): Promise<LicenseStatus> {
+  return invoke<LicenseStatus>("activate_license", { key });
+}
+
+export async function deactivateLicense(): Promise<LicenseStatus> {
+  return invoke<LicenseStatus>("deactivate_license");
+}
+
+export async function purchaseUrl(): Promise<string> {
+  return invoke<string>("purchase_url");
+}
+
 export function formatError(err: unknown): string {
   if (typeof err === "string") return err;
   if (err && typeof err === "object" && "message" in err) {
