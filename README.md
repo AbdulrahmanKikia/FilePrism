@@ -15,6 +15,7 @@ Files never leave the device by default. Shared Rust core (`fileprism-core`) pow
 ```
 crates/            # core, formats, history, licensing, explorer-win (shell DLL)
 apps/desktop/      # Tauri + SvelteKit desktop app
+apps/web/          # SvelteKit web client (browser convert via WASM / canvas stub)
 packaging/         # Windows sparse package + Linux .desktop actions
 docs/              # CONTRACTS.md, TASKS.md
 ```
@@ -29,6 +30,7 @@ cargo check --workspace
 cargo test --workspace --exclude fileprism-desktop
 pnpm build
 pnpm tauri:dev
+pnpm dev:web
 ```
 
 ## Shell integration (M6)
