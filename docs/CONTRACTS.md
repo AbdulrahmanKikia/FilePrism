@@ -341,3 +341,56 @@ Merchant: **Paddle** primary, Lemon Squeezy alternate — stubs in `docs/licensi
 - Code signing docs: `docs/packaging/code-signing.md`
 - Auto-update: `tauri-plugin-updater` + `docs/packaging/auto-update.md`
 - Release workflow hooks: `.github/workflows/release.yml` (secrets for certs / updater key)
+
+## WASM / web convert (M8) — `fileprism-wasm` / `@fileprism/wasm`
+
+Browser bindings live in `crates/wasm` (wasm-bindgen) and are published as JS glue under
+`packages/wasm` (`@fileprism/wasm`). Desktop-only capabilities stay feature-gated and must
+surface as “desktop only” in the web UI (not fake success).
+
+### Feature gates (desktop default on)
+
+| Crate | Feature | Desktop | WASM / web |
+|-------|---------|---------|------------|
+| `fileprism-formats-image` | `heic`, `avif`, `webp-lossy`, `parallel` | default | off (`default-features = false`) |
+| `fileprism-formats-doc` | `pdfium` | default | off (PDF→PNG/JPEG unavailable) |
+| `fileprism-formats-archive` | `rar` | default | off (sidecar process) |
+| `fileprism-explorer-win` | (Windows crate) | desktop | N/A |
+
+Web MVP image formats: **PNG / JPG / WebP** (in-memory). Without `webp-lossy`, WebP encode uses the pure-Rust lossless path from the `image` crate.
+
+### In-memory image API (Rust)
+
+```rust
+ImageConverter::convert_bytes(
+    input: &[u8],
+    input_format: &str,   // "png" | "jpg" | "webp" (| heic/avif when featured)
+    output_format: &str,
+    options: &JobOptions, // quality, width, height, strip_metadata
+) -> Result<Vec<u8>, Error>
+```
+
+Path-based `Converter` / `Pipeline` / `Job` remain for desktop; web does **not** use filesystem `input_path` / `output_path`.
+
+### JS exports (`@fileprism/wasm`)
+
+| Export | Signature / notes |
+|--------|-------------------|
+| `init` / `default` | Async wasm-bindgen loader |
+| `convert_image` | `(bytes, inputFmt, outputFmt, options?) → { bytes, mimeType, mime_type, output_format, bytes_written }` |
+| `list_image_pairs` | `() → string[]` (`"png→webp"`, …) |
+| `is_desktop_only` | `(format) → boolean` — RAR, HEIC/AVIF, PDF, archives, explorer, … |
+| `crate_name` | `"fileprism-wasm"` |
+
+`options`: `{ quality?: number, width?: number, height?: number, strip_metadata?: boolean }`.
+
+### Lane B import
+
+```ts
+import init, { convert_image } from "@fileprism/wasm";
+await init();
+const { bytes, mimeType } = convert_image(buf, "png", "webp", { quality: 85 });
+```
+
+Or set `VITE_WASM_MODULE=@fileprism/wasm` so `apps/web/src/lib/wasm/index.ts` picks it up.
+Rebuild: `pnpm --filter @fileprism/wasm build:release` (uses `CARGO_BUILD_JOBS=1` by default).

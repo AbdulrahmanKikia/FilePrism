@@ -1,0 +1,33 @@
+[package]
+name = "fileprism-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "FilePrism WASM bindings (browser image convert)"
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+fileprism-core = { workspace = true }
+# Path dep (not workspace) so we can force default-features = false for WASM.
+fileprism-formats-image = { path = "../formats-image", default-features = false }
+serde = { workspace = true }
+serde_json = { workspace = true }
+wasm-bindgen = { workspace = true }
+serde-wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+console_error_panic_hook = { version = "0.1", optional = true }
+
+# `getrandom` needs the `js` feature on wasm32.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dev-dependencies]
+image = { version = "0.25", default-features = false, features = ["png"] }

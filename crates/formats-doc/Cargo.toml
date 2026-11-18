@@ -6,18 +6,23 @@ license.workspace = true
 authors.workspace = true
 description = "Document format converters (PDF, Markdown, HTML, text)"
 
+[features]
+default = ["pdfium"]
+# PDF→PNG/JPEG via pdfium-render + runtime shared library (desktop only).
+pdfium = ["dep:pdfium-render", "dep:ureq", "dep:flate2", "dep:tar", "dep:image"]
+
 [dependencies]
 fileprism-core = { workspace = true }
 # Pin to pdfium_latest (8125); we download matching bblanchon binaries at runtime.
-pdfium-render = { version = "0.9", default-features = true }
+pdfium-render = { version = "0.9", default-features = true, optional = true }
 pdf-extract = "0.8"
 pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
 # M3 MD→PDF / fixture writer: BuiltinFont Helvetica, no external font files.
 printpdf = { version = "0.7", default-features = false }
-image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
-ureq = { version = "3", default-features = false, features = ["rustls"] }
-flate2 = "1"
-tar = "0.4"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"], optional = true }
+ureq = { version = "3", default-features = false, features = ["rustls"], optional = true }
+flate2 = { version = "1", optional = true }
+tar = { version = "0.4", optional = true }
 
 [dev-dependencies]
 tempfile = "3"
