@@ -15,7 +15,7 @@
   <div class="panels">
     <section class="panel">
       <h2>Supported now</h2>
-      <p class="empty">PNG ↔ JPG ↔ WebP (canvas stub until WASM lands).</p>
+      <p class="empty">PNG ↔ JPG ↔ WebP via @fileprism/wasm (browser).</p>
     </section>
     <section class="panel">
       <h2>Recent history</h2>

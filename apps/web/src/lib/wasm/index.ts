@@ -17,17 +17,13 @@ export {
 /**
  * Convert engine resolver.
  *
- * Lane A swap path:
- * 1. Publish/build wasm-bindgen output under `static/wasm/` (or `@fileprism/wasm`).
- * 2. Set `VITE_WASM_MODULE=/wasm/fileprism_core.js` (or package name).
- * 3. Expose `init` + `convert_image(bytes, inputFmt, outputFmt, options)`.
- *
- * Until then, the canvas stub fulfills PNG/JPG/WebP Convert MVP.
+ * Lane A: `@fileprism/wasm` (default). Set `VITE_WASM_MODULE` to override
+ * (e.g. `/wasm/fileprism_wasm.js`). On load failure, falls back to canvas stub.
  */
 let override: ConvertEngine | null = null;
 let cached: ConvertEngine | null = null;
 
-/** Test / Lane A hook: inject the real engine once bindings exist. */
+/** Test / Lane A hook: inject an engine explicitly. */
 export function setConvertEngine(engine: ConvertEngine | null): void {
   override = engine;
   cached = null;
@@ -53,22 +49,33 @@ export async function convertImage(
 }
 
 async function tryLoadWasmEngine(): Promise<ConvertEngine | null> {
-  const spec = (import.meta.env.VITE_WASM_MODULE as string | undefined)?.trim();
-  if (!spec) return null;
+  if (typeof window === "undefined") return null;
+
+  const spec =
+    (import.meta.env.VITE_WASM_MODULE as string | undefined)?.trim() || "@fileprism/wasm";
 
   try {
-    const mod = await import(/* @vite-ignore */ spec);
-    if (typeof mod.default === "function") await mod.default();
-    else if (typeof mod.init === "function") await mod.init();
+    const mod =
+      spec === "@fileprism/wasm"
+        ? await import("@fileprism/wasm")
+        : await import(/* @vite-ignore */ spec);
+
+    const init = mod.default ?? mod.init;
+    if (typeof init === "function") {
+      await init();
+    }
 
     const convert = mod.convert_image ?? mod.convertImage ?? mod.convert;
-    if (typeof convert !== "function") return null;
+    if (typeof convert !== "function") {
+      console.warn("[fileprism] WASM module missing convert_image; using canvas stub.");
+      return null;
+    }
 
     return {
       id: "wasm",
       ready: true,
       async convert(input, inputFormat, outputFormat, options) {
-        const raw = await convert(input, inputFormat, outputFormat, options ?? {});
+        const raw = convert(input, inputFormat, outputFormat, options ?? {});
         if (raw instanceof Uint8Array) {
           return {
             bytes: raw,
@@ -83,7 +90,7 @@ async function tryLoadWasmEngine(): Promise<ConvertEngine | null> {
           bytes,
           mimeType: raw.mimeType ?? raw.mime_type ?? mimeFor(outputFormat),
           outputFormat,
-          bytesWritten: bytes.byteLength,
+          bytesWritten: Number(raw.bytes_written ?? bytes.byteLength),
           engine: "wasm",
         };
       },

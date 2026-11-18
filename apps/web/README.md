@@ -11,15 +11,21 @@ Client-side FilePrism web app (SvelteKit + TypeScript). Convert images in the br
 
 Lane C owns SEO/landing routes under `apps/web` (pair landings / ad slots). Prefer adding new route folders without rewriting Convert/History/Settings.
 
-## WASM
+## WASM (Lane A)
 
-Until Lane A ships bindings, Convert uses a **canvas stub** (`src/lib/wasm/canvas-stub.ts`).
+Depends on workspace package `@fileprism/wasm`.
 
-Swap path:
+```env
+VITE_WASM_MODULE=@fileprism/wasm
+```
 
-1. Drop wasm-bindgen output (or package) and set `VITE_WASM_MODULE` (e.g. `/wasm/fileprism_core.js`).
-2. Expose `init` + `convert_image(bytes, inputFmt, outputFmt, options)`.
-3. Or call `setConvertEngine(...)` from `src/lib/wasm/index.ts`.
+`src/lib/wasm/index.ts` calls `await init()` then `convert_image(...)`. On load failure it falls back to the canvas stub.
+
+Rebuild bindings (Windows cooler `-j 1`):
+
+```bash
+pnpm --filter @fileprism/wasm build:release
+```
 
 ## Develop
 

@@ -28,7 +28,8 @@
     (async () => {
       const engine = await getConvertEngine();
       if (!cancelled) {
-        engineLabel = engine.id === "wasm" ? "WASM core" : "canvas stub (awaiting Lane A)";
+        engineLabel =
+          engine.id === "wasm" ? "WASM core (@fileprism/wasm)" : "canvas stub (WASM unavailable)";
       }
     })();
     return () => {

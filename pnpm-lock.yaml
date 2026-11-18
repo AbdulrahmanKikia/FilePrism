@@ -45,6 +45,36 @@ importers:
         specifier: ^8.0.16
         version: 8.3.8
 
+  apps/web:
+    dependencies:
+      '@fileprism/wasm':
+        specifier: workspace:*
+        version: link:../../packages/wasm
+    devDependencies:
+      '@sveltejs/adapter-static':
+        specifier: ^3.0.10
+        version: 3.0.11(@sveltejs/kit@2.70.4(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.3)(vite@8.3.8))(svelte@5.57.3)(typescript@5.9.3)(vite@8.3.8))
+      '@sveltejs/kit':
+        specifier: ^2.65.1
+        version: 2.70.4(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.3)(vite@8.3.8))(svelte@5.57.3)(typescript@5.9.3)(vite@8.3.8)
+      '@sveltejs/vite-plugin-svelte':
+        specifier: ^7.1.2
+        version: 7.3.1(svelte@5.57.3)(vite@8.3.8)
+      svelte:
+        specifier: ^5.56.3
+        version: 5.57.3
+      svelte-check:
+        specifier: ^4.6.0
+        version: 4.7.8(picomatch@4.0.7)(svelte@5.57.3)(typescript@5.9.3)
+      typescript:
+        specifier: ~5.9.0
+        version: 5.9.3
+      vite:
+        specifier: ^8.0.16
+        version: 8.3.8
+
+  packages/wasm: {}
+
 packages:
 
   '@emnapi/core@2.0.0-beta.2':
