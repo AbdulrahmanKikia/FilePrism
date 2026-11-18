@@ -42,11 +42,12 @@ Tiny, checkable items. Agents check off items when done; humans review at milest
 
 ## M5 — UI polish
 
-- [ ] Convert / Compress / Archives views
-- [ ] History search / filter / re-run
-- [ ] Settings (theme, accent, glass, density, motion, font)
-- [ ] Command palette
-- [ ] Animations + reduced-motion
+- [x] Convert / Compress / Archives views
+- [x] History search / filter / re-run
+- [x] Settings (theme, accent, glass, density, motion, font)
+- [x] Command palette
+- [x] Animations + reduced-motion
+- [x] Tauri `run_job` / history / settings commands wired to core + format crates
 
 ## M6 — Explorer integration
 

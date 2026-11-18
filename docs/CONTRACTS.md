@@ -211,12 +211,40 @@ Well-known key: `history.enabled` — when `"false"` / `"0"`, `HistoryStore` ski
 
 History recording is **not** inside `Pipeline` (core must not depend on history). Callers (desktop/Tauri) invoke the store around `Pipeline::run`.
 
-## Tauri commands (M0; unchanged)
+## Tauri commands (M5)
 
-| Command     | Args           | Returns   | Notes                          |
-|-------------|----------------|-----------|--------------------------------|
-| `greet`     | `name: string` | `string`  | Smoke / scaffold only          |
-| `core_name` | —              | `string`  | Returns `fileprism-core` name  |
+Desktop shell (`apps/desktop/src-tauri`) registers converters from image / doc / data / archive crates into a `Pipeline`, and opens SQLite history under the app data dir (`history.db`).
+
+| Command | Args | Returns | Notes |
+|---------|------|---------|-------|
+| `greet` | `name: string` | `string` | Smoke / scaffold |
+| `core_name` | — | `string` | Returns `fileprism-core` name |
+| `run_job` | `args: { inputPath, outputPath, inputFormat, outputFormat, options?, id? }` | `Output` | Runs pipeline; records history when `history.enabled` |
+| `search_history` | `query: string`, `limit?: number` | `JobRecord[]` | Empty query → recent jobs |
+| `get_history_job` | `id: string` | `JobRecord?` | |
+| `rerun_job` | `id: string` | `Output` | New job id; same paths/formats; default options |
+| `list_settings` | — | `Setting[]` | |
+| `get_setting` | `key: string` | `string?` | |
+| `set_setting` | `key: string`, `value: string` | — | |
+
+### UI settings keys (M5)
+
+Persisted via `settings` table; applied as CSS `data-*` on the shell:
+
+| Key | Values |
+|-----|--------|
+| `ui.theme` | `system` \| `light` \| `dark` |
+| `ui.accent` | `blue` \| `violet` \| `teal` \| `orange` \| `pink` \| `green` |
+| `ui.glass` | `off` \| `subtle` \| `full` |
+| `ui.density` | `comfortable` \| `compact` |
+| `ui.motion` | `full` \| `reduced` |
+| `ui.font` | `system` \| `small` \| `large` |
+
+Also: `history.enabled` — `"false"` / `"0"` skips job recording (privacy mode).
+
+Frontend invoke wrappers live in `apps/desktop/src/lib/api.ts`. Command palette: Ctrl/⌘K.
+
+CI note: `cargo test --workspace --exclude fileprism-desktop` — the desktop `cdylib` link pulls rav1d/dav1d without `-fPIC` on Linux (rust-lld `R_X86_64_PC32`). Desktop remains covered by `cargo check` + `pnpm build`.
 
 ## Explorer IPC (planned M6)
 

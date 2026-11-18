@@ -65,6 +65,64 @@
   }
 }
 
+[data-motion="reduced"] {
+  --motion-fast: 0ms;
+  --motion-base: 0ms;
+}
+
+[data-font="small"] {
+  --font-size-sm: 0.75rem;
+  --font-size-base: 0.875rem;
+  --font-size-lg: 1rem;
+}
+
+[data-font="large"] {
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1.0625rem;
+  --font-size-lg: 1.25rem;
+}
+
+@keyframes view-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes view-enter {
+    from,
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes fade-in {
+    from,
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+[data-motion="reduced"] {
+  /* Zero-duration tokens above; keep keyframes as no-ops when reduced via media too. */
+}
+
 [data-theme="light"] {
   --color-bg: #eef3f7;
   --color-surface: rgba(255, 255, 255, 0.7);
