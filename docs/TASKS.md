@@ -29,9 +29,9 @@ Tiny, checkable items. Agents check off items when done; humans review at milest
 
 ## M3 — Document & data
 
-- [ ] PDF→PNG/JPG, PDF→text
-- [ ] MD→HTML, MD→PDF (spike renderer first)
-- [ ] JSON↔CSV, JSON↔YAML, CSV↔XLSX
+- [x] PDF→PNG/JPG, PDF→text
+- [x] MD→HTML, MD→PDF (spike renderer first)
+- [x] JSON↔CSV, JSON↔YAML, CSV↔XLSX
 
 ## M4 — Archives
 
