@@ -3,7 +3,7 @@
 use std::path::{Path, PathBuf};
 
 use fileprism_core::{CancellationToken, Converter, Job, JobOptions, Pipeline};
-use fileprism_formats_doc::DocConverter;
+use fileprism_formats_doc::{write_fixture_pdf, DocConverter};
 
 fn temp_dir(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("fileprism-m3-doc-{name}-{}", std::process::id()));
@@ -12,74 +12,28 @@ fn temp_dir(name: &str) -> PathBuf {
     dir
 }
 
-fn job(id: &str, input: &Path, output: &Path, from: &str, to: &str) -> Job {
+fn job(id: &str, input: &Path, output: &Path, from: &str, to: &str, options: JobOptions) -> Job {
     Job {
         id: id.into(),
         input_path: input.to_string_lossy().into(),
         output_path: output.to_string_lossy().into(),
         input_format: from.into(),
         output_format: to.into(),
-        options: JobOptions::default(),
+        options,
     }
 }
 
-fn run(job: &Job) -> Result<fileprism_core::Output, fileprism_core::Error> {
+fn run(job: &Job) -> fileprism_core::Output {
     let mut pipeline = Pipeline::new();
     pipeline.register(DocConverter::new());
-    pipeline.run_silent(job, &CancellationToken::new())
-}
-
-#[test]
-fn md_to_html() {
-    let dir = temp_dir("md-html");
-    let md = dir.join("in.md");
-    let html = dir.join("out.html");
-    std::fs::write(&md, "# Hello\n\nFilePrism **rocks**.\n").unwrap();
-    let out = run(&job("md-html", &md, &html, "md", "html")).unwrap();
-    assert!(out.bytes_written > 0);
-    let text = std::fs::read_to_string(&html).unwrap();
-    assert!(text.contains("Hello"));
-    assert!(text.contains("rocks"));
-}
-
-#[test]
-fn md_to_pdf_spike() {
-    let dir = temp_dir("md-pdf");
-    let md = dir.join("in.md");
-    let pdf = dir.join("out.pdf");
-    std::fs::write(&md, "# Title\n\nParagraph one.\n\n- item\n").unwrap();
-    let out = run(&job("md-pdf", &md, &pdf, "markdown", "pdf")).unwrap();
-    assert!(out.bytes_written > 100);
-    let magic = std::fs::read(&pdf).unwrap();
-    assert!(magic.starts_with(b"%PDF"));
-}
-
-#[test]
-fn pdf_to_text() {
-    let dir = temp_dir("pdf-text");
-    let md = dir.join("in.md");
-    let pdf = dir.join("mid.pdf");
-    let txt = dir.join("out.txt");
-    std::fs::write(&md, "UniqueTokenFilePrism42\n\nSecond line.\n").unwrap();
-    run(&job("mkpdf", &md, &pdf, "md", "pdf")).unwrap();
-    let out = run(&job("pdf-txt", &pdf, &txt, "pdf", "txt")).unwrap();
-    assert!(out.bytes_written > 0 || !std::fs::read_to_string(&txt).unwrap().is_empty());
-}
-
-#[test]
-fn pdf_to_png_text_raster() {
-    let dir = temp_dir("pdf-png");
-    let md = dir.join("in.md");
-    let pdf = dir.join("mid.pdf");
-    let png = dir.join("out.png");
-    std::fs::write(&md, "# Render me\n").unwrap();
-    run(&job("mkpdf", &md, &pdf, "md", "pdf")).unwrap();
-
-    let out = run(&job("pdf-png", &pdf, &png, "pdf", "png")).unwrap();
-    assert!(out.bytes_written > 0);
-    assert!(png.is_file());
-    let img = image::open(&png).unwrap();
-    assert!(img.width() >= 200 && img.height() >= 200);
+    pipeline
+        .run_silent(job, &CancellationToken::new())
+        .unwrap_or_else(|e| {
+            panic!(
+                "convert {}→{} failed: {e}",
+                job.input_format, job.output_format
+            )
+        })
 }
 
 #[test]
@@ -87,8 +41,128 @@ fn supports_expected_pairs() {
     let c = DocConverter::new();
     assert!(c.supports("pdf", "png"));
     assert!(c.supports("pdf", "jpg"));
+    assert!(c.supports("pdf", "jpeg"));
     assert!(c.supports("pdf", "txt"));
+    assert!(c.supports("pdf", "text"));
     assert!(c.supports("md", "html"));
+    assert!(c.supports("markdown", "html"));
+    assert!(c.supports("md", "pdf"));
     assert!(c.supports("markdown", "pdf"));
     assert!(!c.supports("html", "pdf"));
+    assert!(!c.supports("png", "pdf"));
+    assert!(!c.supports("docx", "pdf"));
+}
+
+#[test]
+fn md_to_html() {
+    let dir = temp_dir("md-html");
+    let input = dir.join("in.md");
+    let output = dir.join("out.html");
+    std::fs::write(
+        &input,
+        "# Hello\n\nThis is **bold** and a [link](https://example.com).\n",
+    )
+    .unwrap();
+
+    let out = run(&job(
+        "md-html",
+        &input,
+        &output,
+        "md",
+        "html",
+        JobOptions::default(),
+    ));
+    assert!(out.bytes_written > 0);
+    let html = std::fs::read_to_string(&output).unwrap();
+    assert!(html.contains("<h1>") || html.contains("<h1 "));
+    assert!(html.contains("Hello"));
+    assert!(html.contains("<strong>bold</strong>") || html.contains("<strong>"));
+}
+
+#[test]
+fn md_to_pdf() {
+    let dir = temp_dir("md-pdf");
+    let input = dir.join("in.md");
+    let output = dir.join("out.pdf");
+    std::fs::write(
+        &input,
+        "# Title\n\nParagraph one.\n\n- item a\n- item b\n",
+    )
+    .unwrap();
+
+    let out = run(&job(
+        "md-pdf",
+        &input,
+        &output,
+        "markdown",
+        "pdf",
+        JobOptions::default(),
+    ));
+    assert!(out.bytes_written > 100);
+    let magic = std::fs::read(&output).unwrap();
+    assert!(magic.starts_with(b"%PDF"));
+}
+
+#[test]
+fn pdf_to_text() {
+    let dir = temp_dir("pdf-txt");
+    let input = dir.join("in.pdf");
+    let output = dir.join("out.txt");
+    write_fixture_pdf(&input, "FilePrism extract me please").unwrap();
+
+    let out = run(&job(
+        "pdf-txt",
+        &input,
+        &output,
+        "pdf",
+        "txt",
+        JobOptions::default(),
+    ));
+    assert!(out.bytes_written > 0);
+    let text = std::fs::read_to_string(&output).unwrap();
+    assert!(
+        text.contains("FilePrism") || text.contains("extract"),
+        "unexpected extract: {text:?}"
+    );
+}
+
+#[test]
+fn pdf_to_png_and_jpg() {
+    let dir = temp_dir("pdf-img");
+    let input = dir.join("in.pdf");
+    write_fixture_pdf(&input, "Render this page").unwrap();
+
+    let png = dir.join("out.png");
+    let out = run(&job(
+        "pdf-png",
+        &input,
+        &png,
+        "pdf",
+        "png",
+        JobOptions {
+            width: Some(96), // DPI hint
+            ..Default::default()
+        },
+    ));
+    assert!(out.bytes_written > 0);
+    let img = image::open(&png).unwrap_or_else(|e| panic!("open png: {e}"));
+    assert!(img.width() > 0 && img.height() > 0);
+
+    let jpg = dir.join("out.jpg");
+    let out = run(&job(
+        "pdf-jpg",
+        &input,
+        &jpg,
+        "pdf",
+        "jpeg",
+        JobOptions {
+            width: Some(800), // max width pixels
+            quality: Some(70),
+            ..Default::default()
+        },
+    ));
+    assert!(out.bytes_written > 0);
+    let img = image::open(&jpg).unwrap_or_else(|e| panic!("open jpg: {e}"));
+    assert!(img.width() > 0 && img.height() > 0);
+    assert!(img.width() <= 800);
 }

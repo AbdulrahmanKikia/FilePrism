@@ -1,31 +1,20 @@
 //! [`DocConverter`] implementation.
-//!
-//! ## MD→PDF spike decision
-//! Chosen: `printpdf` with flattened markdown text (headings/paragraphs as plain
-//! lines). Avoids headless Chrome / wkhtmltopdf. Good enough for M3; richer HTML
-//! layout can land later if needed.
-//!
-//! ## PDF→PNG/JPG decision
-//! Portable text-raster fallback: extract text via `pdf-extract`, then draw onto
-//! a PNG/JPEG canvas with `ab_glyph` (embedded font). Full page rasterization
-//! (pdfium) is deferred until a no-bindgen binding path is available for CI.
 
 use std::fs::File;
-use std::io::{BufWriter, Write};
+use std::io::BufWriter;
 use std::path::Path;
 
-use ab_glyph::{Font, FontRef, PxScale, ScaleFont};
 use fileprism_core::{Error, Job, JobOptions, Output};
-use image::{ImageEncoder, ImageFormat as ImgFmt, Rgb, RgbImage};
-use printpdf::{Mm, PdfDocument};
-use pulldown_cmark::{html, Options, Parser};
+use image::ImageEncoder;
+use pdfium_render::prelude::*;
+use printpdf::{BuiltinFont, Mm, PdfDocument};
+use pulldown_cmark::{Event, Options as MdOptions, Parser, Tag, TagEnd};
 
 use crate::formats::{normalize_format, supports_pair, DocFormat};
+use crate::options::{effective_quality, pdf_render_hint, PdfRenderHint};
+use crate::pdfium_lib;
 
-/// Embedded Latin font for PDF→image text rasterization.
-const FONT_BYTES: &[u8] = include_bytes!("../assets/Roboto-Regular.ttf");
-
-/// Document converter for PDF / Markdown pairs.
+/// Document converter for PDF / Markdown / HTML / text.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct DocConverter;
 
@@ -35,43 +24,48 @@ impl DocConverter {
     }
 
     pub fn supports_pair(input: &str, output: &str) -> bool {
-        match (normalize_format(input), normalize_format(output)) {
-            (Some(i), Some(o)) => supports_pair(i, o),
-            _ => false,
-        }
+        let Some(inp) = normalize_format(input) else {
+            return false;
+        };
+        let Some(out) = normalize_format(output) else {
+            return false;
+        };
+        supports_pair(inp, out)
     }
 
     pub fn convert_job(job: &Job) -> Result<Output, Error> {
-        let input = normalize_format(&job.input_format).ok_or_else(|| {
+        let input_fmt = normalize_format(&job.input_format).ok_or_else(|| {
             Error::Unsupported(job.input_format.clone(), job.output_format.clone())
         })?;
-        let output = normalize_format(&job.output_format).ok_or_else(|| {
+        let output_fmt = normalize_format(&job.output_format).ok_or_else(|| {
             Error::Unsupported(job.input_format.clone(), job.output_format.clone())
         })?;
-        if !supports_pair(input, output) {
+        if !supports_pair(input_fmt, output_fmt) {
             return Err(Error::Unsupported(
                 job.input_format.clone(),
                 job.output_format.clone(),
             ));
         }
 
-        let in_path = Path::new(&job.input_path);
-        let out_path = Path::new(&job.output_path);
-        if let Some(parent) = out_path.parent() {
-            if !parent.as_os_str().is_empty() && !parent.exists() {
-                std::fs::create_dir_all(parent)?;
-            }
-        }
+        ensure_parent_dir(Path::new(&job.output_path))?;
 
-        match (input, output) {
-            (DocFormat::Markdown, DocFormat::Html) => md_to_html(in_path, out_path)?,
-            (DocFormat::Markdown, DocFormat::Pdf) => md_to_pdf(in_path, out_path)?,
-            (DocFormat::Pdf, DocFormat::Text) => pdf_to_text(in_path, out_path)?,
-            (DocFormat::Pdf, DocFormat::Png) => {
-                pdf_to_image(in_path, out_path, ImgFmt::Png, &job.options)?
+        match (input_fmt, output_fmt) {
+            (DocFormat::Pdf, DocFormat::Png) | (DocFormat::Pdf, DocFormat::Jpeg) => {
+                pdf_to_image(
+                    Path::new(&job.input_path),
+                    Path::new(&job.output_path),
+                    output_fmt,
+                    &job.options,
+                )?;
             }
-            (DocFormat::Pdf, DocFormat::Jpeg) => {
-                pdf_to_image(in_path, out_path, ImgFmt::Jpeg, &job.options)?
+            (DocFormat::Pdf, DocFormat::Text) => {
+                pdf_to_text(Path::new(&job.input_path), Path::new(&job.output_path))?;
+            }
+            (DocFormat::Markdown, DocFormat::Html) => {
+                md_to_html(Path::new(&job.input_path), Path::new(&job.output_path))?;
+            }
+            (DocFormat::Markdown, DocFormat::Pdf) => {
+                md_to_pdf(Path::new(&job.input_path), Path::new(&job.output_path))?;
             }
             _ => {
                 return Err(Error::Unsupported(
@@ -81,7 +75,10 @@ impl DocConverter {
             }
         }
 
-        let bytes_written = std::fs::metadata(out_path)?.len();
+        let bytes_written = std::fs::metadata(&job.output_path)
+            .map(|m| m.len())
+            .map_err(|e| Error::Io(e.to_string()))?;
+
         Ok(Output {
             job_id: job.id.clone(),
             output_path: job.output_path.clone(),
@@ -90,142 +87,240 @@ impl DocConverter {
     }
 }
 
-fn md_to_html(input: &Path, output: &Path) -> Result<(), Error> {
-    let markdown = std::fs::read_to_string(input)?;
-    let parser = Parser::new_ext(&markdown, Options::all());
-    let mut html_out = String::new();
-    html::push_html(&mut html_out, parser);
-    let mut w = BufWriter::new(File::create(output)?);
-    writeln!(
-        w,
-        "<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body>\n{html_out}</body></html>"
-    )?;
-    w.flush()?;
-    Ok(())
-}
-
-fn md_to_pdf(input: &Path, output: &Path) -> Result<(), Error> {
-    let markdown = std::fs::read_to_string(input)?;
-    let lines = flatten_markdown_lines(&markdown);
-
-    let (doc, page1, layer1) = PdfDocument::new("FilePrism", Mm(210.0), Mm(297.0), "Layer 1");
-    let font = doc
-        .add_builtin_font(printpdf::BuiltinFont::Helvetica)
-        .map_err(|e| Error::Other(format!("pdf font: {e}")))?;
-    let layer = doc.get_page(page1).get_layer(layer1);
-
-    let mut y = 280.0;
-    for line in lines.iter().take(60) {
-        let truncated: String = line.chars().take(95).collect();
-        layer.use_text(&truncated, 11.0, Mm(15.0), Mm(y), &font);
-        y -= 6.0;
-        if y < 15.0 {
-            break;
+fn ensure_parent_dir(path: &Path) -> Result<(), Error> {
+    if let Some(parent) = path.parent() {
+        if !parent.as_os_str().is_empty() && !parent.exists() {
+            std::fs::create_dir_all(parent).map_err(|e| {
+                Error::Io(format!("create output dir {}: {e}", parent.display()))
+            })?;
         }
     }
-
-    doc.save(&mut BufWriter::new(File::create(output)?))
-        .map_err(|e| Error::Other(format!("pdf save: {e}")))?;
     Ok(())
 }
 
-fn flatten_markdown_lines(markdown: &str) -> Vec<String> {
-    markdown
-        .lines()
-        .map(|l| {
-            l.trim()
-                .trim_start_matches('#')
-                .trim_start_matches(['*', '-', '>', ' '])
-                .replace('`', "")
-                .replace('*', "")
-                .replace('_', "")
-        })
-        .filter(|l| !l.is_empty())
-        .map(|s| s.to_string())
-        .collect()
-}
-
-fn pdf_to_text(input: &Path, output: &Path) -> Result<(), Error> {
-    let bytes = std::fs::read(input)?;
-    let text = pdf_extract::extract_text_from_mem(&bytes)
-        .map_err(|e| Error::Other(format!("pdf text: {e}")))?;
-    std::fs::write(output, text)?;
-    Ok(())
-}
-
+/// Render the first page of a PDF to PNG or JPEG.
+///
+/// Multi-page → multi-file output is deferred; M3 writes page 0 to `output`.
 fn pdf_to_image(
     input: &Path,
     output: &Path,
-    format: ImgFmt,
+    format: DocFormat,
     options: &JobOptions,
 ) -> Result<(), Error> {
-    let bytes = std::fs::read(input)?;
-    let text = pdf_extract::extract_text_from_mem(&bytes)
-        .map_err(|e| Error::Other(format!("pdf text: {e}")))?;
-    let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
+    let pdfium = pdfium_lib::pdfium()?;
+    let document = pdfium
+        .load_pdf_from_file(input, None)
+        .map_err(|e| Error::Other(format!("pdf open: {e}")))?;
 
-    let width = options.width.unwrap_or(800).clamp(200, 4000);
-    let line_height = 18u32;
-    let height = ((lines.len() as u32 + 2) * line_height).clamp(200, 4000);
-    let mut img = RgbImage::from_pixel(width, height, Rgb([255, 255, 255]));
+    let page = document
+        .pages()
+        .get(0)
+        .map_err(|e| Error::Other(format!("pdf page 0: {e}")))?;
 
-    let font = FontRef::try_from_slice(FONT_BYTES)
-        .map_err(|e| Error::Other(format!("font load: {e}")))?;
-    let scale = PxScale::from(14.0);
-    let scaled = font.as_scaled(scale);
-
-    let mut y = 20.0f32;
-    for line in lines.iter().take(200) {
-        let mut x = 16.0f32;
-        for ch in line.chars().take(120) {
-            let glyph = scaled.scaled_glyph(ch);
-            let outlined = font.outline_glyph(glyph);
-            if let Some(outlined) = outlined {
-                let bounds = outlined.px_bounds();
-                outlined.draw(|gx, gy, v| {
-                    if v < 0.3 {
-                        return;
-                    }
-                    let px = (x + bounds.min.x + gx as f32) as i32;
-                    let py = (y + bounds.min.y + gy as f32) as i32;
-                    if px >= 0 && py >= 0 && (px as u32) < width && (py as u32) < height {
-                        let c = (255.0 * (1.0 - v)) as u8;
-                        img.put_pixel(px as u32, py as u32, Rgb([c, c, c]));
-                    }
-                });
-                x += scaled.h_advance(scaled.glyph_id(ch));
-            } else {
-                x += scaled.h_advance(scaled.glyph_id(ch));
-            }
+    let mut config = PdfRenderConfig::new();
+    match pdf_render_hint(options) {
+        PdfRenderHint::Dpi(dpi) => {
+            // Pdfium's scale factor is relative to 72 DPI.
+            let scale = dpi as f32 / 72.0;
+            config = config.scale_page_by_factor(scale);
         }
-        y += line_height as f32;
-        if y > height as f32 - 20.0 {
-            break;
+        PdfRenderHint::MaxWidth(w) => {
+            config = config.set_target_width(w as i32);
         }
     }
 
-    let mut out = File::create(output)?;
+    let image = page
+        .render_with_config(&config)
+        .map_err(|e| Error::Other(format!("pdf render: {e}")))?
+        .as_image()
+        .map_err(|e| Error::Other(format!("pdf bitmap: {e}")))?;
+
     match format {
-        ImgFmt::Png => img
-            .write_to(&mut out, ImgFmt::Png)
-            .map_err(|e| Error::Other(format!("png write: {e}")))?,
-        ImgFmt::Jpeg => {
-            let quality = options.quality.unwrap_or(85).clamp(1, 100);
-            let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut out, quality);
+        DocFormat::Png => {
+            image
+                .save_with_format(output, image::ImageFormat::Png)
+                .map_err(|e| Error::Other(format!("png encode: {e}")))?;
+        }
+        DocFormat::Jpeg => {
+            let rgb = image.into_rgb8();
+            let file = File::create(output).map_err(|e| Error::Io(e.to_string()))?;
+            let mut writer = BufWriter::new(file);
+            let quality = effective_quality(options);
+            let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut writer, quality);
             encoder
                 .write_image(
-                    img.as_raw(),
-                    img.width(),
-                    img.height(),
+                    rgb.as_raw(),
+                    rgb.width(),
+                    rgb.height(),
                     image::ExtendedColorType::Rgb8,
                 )
-                .map_err(|e| Error::Other(format!("jpeg write: {e}")))?;
+                .map_err(|e| Error::Other(format!("jpeg encode: {e}")))?;
         }
-        _ => {
-            return Err(Error::Other(
-                "unsupported image format for pdf render".into(),
-            ))
-        }
+        _ => unreachable!("pdf_to_image only for png/jpeg"),
     }
     Ok(())
+}
+
+fn pdf_to_text(input: &Path, output: &Path) -> Result<(), Error> {
+    let bytes = std::fs::read(input).map_err(|e| Error::Io(e.to_string()))?;
+    let text = pdf_extract::extract_text_from_mem(&bytes)
+        .map_err(|e| Error::Other(format!("pdf text extract: {e}")))?;
+    std::fs::write(output, text.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+    Ok(())
+}
+
+fn md_to_html(input: &Path, output: &Path) -> Result<(), Error> {
+    let markdown = std::fs::read_to_string(input).map_err(|e| Error::Io(e.to_string()))?;
+    let mut html = String::new();
+    let parser = Parser::new_ext(&markdown, MdOptions::all());
+    pulldown_cmark::html::push_html(&mut html, parser);
+    std::fs::write(output, html.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+    Ok(())
+}
+
+/// Markdown → PDF (M3 spike): flatten markdown to plain text via pulldown-cmark
+/// events, then lay out with `printpdf` BuiltinFont Helvetica.
+fn md_to_pdf(input: &Path, output: &Path) -> Result<(), Error> {
+    let markdown = std::fs::read_to_string(input).map_err(|e| Error::Io(e.to_string()))?;
+    let plain = markdown_to_plain(&markdown);
+    write_plain_pdf(&plain, output)
+}
+
+fn markdown_to_plain(markdown: &str) -> String {
+    let parser = Parser::new_ext(markdown, MdOptions::all());
+    let mut out = String::new();
+    let mut needs_space = false;
+
+    for event in parser {
+        match event {
+            Event::Text(t) | Event::Code(t) => {
+                if needs_space && !out.ends_with([' ', '\n']) {
+                    out.push(' ');
+                }
+                out.push_str(&t);
+                needs_space = true;
+            }
+            Event::SoftBreak => {
+                out.push(' ');
+                needs_space = false;
+            }
+            Event::HardBreak => {
+                out.push('\n');
+                needs_space = false;
+            }
+            Event::Rule => {
+                if !out.ends_with('\n') {
+                    out.push('\n');
+                }
+                out.push_str("---\n");
+                needs_space = false;
+            }
+            Event::End(TagEnd::Paragraph)
+            | Event::End(TagEnd::Heading(_))
+            | Event::End(TagEnd::Item)
+            | Event::End(TagEnd::BlockQuote(_))
+            | Event::End(TagEnd::CodeBlock) => {
+                if !out.ends_with('\n') {
+                    out.push('\n');
+                }
+                out.push('\n');
+                needs_space = false;
+            }
+            Event::Start(Tag::Item) => {
+                if !out.ends_with('\n') {
+                    out.push('\n');
+                }
+                out.push_str("- ");
+                needs_space = false;
+            }
+            Event::Start(_) | Event::End(_) | Event::Html(_) | Event::InlineHtml(_) => {}
+            Event::FootnoteReference(_) => {}
+            Event::InlineMath(t) | Event::DisplayMath(t) => {
+                out.push_str(&t);
+                needs_space = true;
+            }
+            Event::TaskListMarker(checked) => {
+                out.push_str(if checked { "[x] " } else { "[ ] " });
+                needs_space = false;
+            }
+        }
+    }
+
+    out
+}
+
+fn write_plain_pdf(text: &str, output: &Path) -> Result<(), Error> {
+    let page_w = Mm(210.0);
+    let page_h = Mm(297.0);
+    let margin = Mm(20.0);
+    let font_size = 11.0;
+    let line_height = Mm(5.5);
+    let usable_width_pt = (page_w - margin - margin).0 / 25.4 * 72.0;
+    // Helvetica average char width ≈ 0.5 * font_size.
+    let approx_char_w = font_size * 0.5;
+    let max_chars = ((usable_width_pt / approx_char_w) as usize).max(20);
+
+    let (doc, page_idx, layer_idx) =
+        PdfDocument::new("FilePrism", page_w, page_h, "Layer");
+    let font = doc
+        .add_builtin_font(BuiltinFont::Helvetica)
+        .map_err(|e| Error::Other(format!("pdf font: {e}")))?;
+
+    let lines = wrap_text(text, max_chars);
+    let mut page = page_idx;
+    let mut layer = layer_idx;
+    let mut y = page_h - margin;
+
+    for line in lines {
+        if y < margin + line_height {
+            let (p, l) = doc.add_page(page_w, page_h, "Layer");
+            page = p;
+            layer = l;
+            y = page_h - margin;
+        }
+        let current = doc.get_page(page).get_layer(layer);
+        // printpdf rejects empty use_text in some versions — write a space.
+        let draw = if line.is_empty() { " " } else { line.as_str() };
+        current.use_text(draw, font_size, margin, y, &font);
+        y -= line_height;
+    }
+
+    let file = File::create(output).map_err(|e| Error::Io(e.to_string()))?;
+    doc.save(&mut BufWriter::new(file))
+        .map_err(|e| Error::Other(format!("pdf write: {e}")))?;
+    Ok(())
+}
+
+fn wrap_text(text: &str, max_chars: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    for paragraph in text.split('\n') {
+        if paragraph.is_empty() {
+            lines.push(String::new());
+            continue;
+        }
+        let mut current = String::new();
+        for word in paragraph.split_whitespace() {
+            if current.is_empty() {
+                current.push_str(word);
+            } else if current.len() + 1 + word.len() <= max_chars {
+                current.push(' ');
+                current.push_str(word);
+            } else {
+                lines.push(std::mem::take(&mut current));
+                current.push_str(word);
+            }
+        }
+        if !current.is_empty() {
+            lines.push(current);
+        }
+    }
+    if lines.is_empty() {
+        lines.push(String::new());
+    }
+    lines
+}
+
+/// Create a tiny one-page PDF with `printpdf` (used by integration tests).
+pub fn write_fixture_pdf(path: &Path, text: &str) -> Result<(), Error> {
+    write_plain_pdf(text, path)
 }

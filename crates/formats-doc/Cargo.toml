@@ -8,12 +8,16 @@ description = "Document format converters (PDF, Markdown, HTML, text)"
 
 [dependencies]
 fileprism-core = { workspace = true }
-pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
-pdf-extract = "0.7"
-printpdf = "0.7"
+# Pin to pdfium_latest (8125); we download matching bblanchon binaries at runtime.
+pdfium-render = { version = "0.9", default-features = true }
+pdf-extract = "0.8"
+pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
+# M3 MD→PDF / fixture writer: BuiltinFont Helvetica, no external font files.
+printpdf = { version = "0.7", default-features = false }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
-ab_glyph = "0.2"
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+flate2 = "1"
+tar = "0.4"
 
 [dev-dependencies]
 tempfile = "3"
-image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
