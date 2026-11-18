@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { setContext, type Snippet } from "svelte";
   import "$lib/styles/tokens.css";
   import ArchivesView from "$lib/components/ArchivesView.svelte";
   import CommandPalette from "$lib/components/CommandPalette.svelte";
@@ -22,7 +23,7 @@
     type UiSettings,
   } from "$lib/settings.svelte";
 
-  let { children } = $props();
+  let { children }: { children: Snippet } = $props();
   let active = $state<NavId>("home");
   let paletteOpen = $state(false);
   let settings = $state<UiSettings>({ ...DEFAULT_SETTINGS });
@@ -44,6 +45,8 @@
   function onNavigate(id: NavId) {
     active = id;
   }
+
+  setContext("fp-navigate", onNavigate);
 
   function apply(next: UiSettings = settings) {
     const root = shellEl ?? document.documentElement;
@@ -109,7 +112,7 @@
     {#if active === "home"}
       {@render children()}
     {:else if active === "convert"}
-      <ConvertView />
+      <ConvertView onOpenHistory={() => onNavigate("history")} />
     {:else if active === "compress"}
       <CompressView />
     {:else if active === "archives"}

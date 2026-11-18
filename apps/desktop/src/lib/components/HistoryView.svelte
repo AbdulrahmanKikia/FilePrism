@@ -46,13 +46,17 @@
     rerunning = id;
     try {
       const out = await rerunJob(id);
-      message = `Re-ran job → ${out.job_id} (${out.bytes_written} bytes).`;
+      message = `Re-ran job → ${out.job_id} (${out.bytes_written} bytes at ${out.output_path}).`;
       await refresh();
     } catch (err) {
       error = formatError(err);
     } finally {
       rerunning = null;
     }
+  }
+
+  function canRerun(job: JobRecord): boolean {
+    return job.status !== "running" && job.status !== "pending";
   }
 
   function basename(path: string): string {
@@ -122,7 +126,8 @@
           <button
             type="button"
             class="primary"
-            disabled={rerunning === job.id}
+            disabled={rerunning === job.id || !canRerun(job)}
+            title={canRerun(job) ? "Run again with the same paths and formats" : "Job is still in progress"}
             onclick={() => onRerun(job.id)}
           >
             {rerunning === job.id ? "Re-running…" : "Re-run"}

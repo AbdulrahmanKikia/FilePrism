@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatError, isTauri, runJob } from "$lib/api";
+  import { suggestSiblingPath, type PathKind } from "$lib/dialogs";
   import {
     getShellAction,
     getShellPaths,
@@ -16,14 +17,23 @@
   let message = $state<string | null>(null);
   let error = $state<string | null>(null);
 
+  const inputPicker = $derived<PathKind>(inputFormat === "dir" ? "directory" : "file");
+
+  function applyInputPath(path: string) {
+    inputPath = path;
+    if (!outputPath.trim()) {
+      outputPath = suggestSiblingPath(path, outputFormat);
+    }
+  }
+
   $effect(() => {
     const rev = getShellRevision();
     const action = getShellAction();
     const paths = getShellPaths();
     if (rev === 0 || paths.length === 0) return;
     if (action !== "compress") return;
-    inputPath = paths[0] ?? "";
     inputFormat = "file";
+    applyInputPath(paths[0] ?? "");
   });
 
   async function onSubmit(e: Event) {
@@ -76,8 +86,12 @@
       outputFormats={["zip", "tar", "7z"]}
       inputLabel="Source path"
       outputLabel="Archive path"
-      inputHint="File or folder to pack"
+      inputHint={inputFormat === "dir" ? "Folder to pack" : "File to pack"}
       outputHint="Destination archive path (e.g. C:\\out\\bundle.zip)"
+      inputPicker={inputPicker}
+      outputPicker="save"
+      outputFilters={[{ name: outputFormat.toUpperCase(), extensions: [outputFormat] }]}
+      onInputPicked={applyInputPath}
     />
 
     <div class="actions">

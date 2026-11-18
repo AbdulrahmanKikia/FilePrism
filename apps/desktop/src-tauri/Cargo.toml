@@ -28,3 +28,4 @@ fileprism-formats-data = { workspace = true }
 fileprism-formats-archive = { workspace = true }
 fileprism-licensing = { workspace = true }
 fileprism-explorer-win = { path = "../../../crates/explorer-win" }
+tauri-plugin-dialog = "2"

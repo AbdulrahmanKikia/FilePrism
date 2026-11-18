@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatError, isTauri, runJob, type JobOptions } from "$lib/api";
+  import { suggestSiblingPath } from "$lib/dialogs";
   import {
     getShellAction,
     getShellPaths,
@@ -34,6 +35,29 @@
     "xlsx",
   ];
 
+  const INPUT_FILTERS = [
+    {
+      name: "Convertible files",
+      extensions: [
+        "png",
+        "jpg",
+        "jpeg",
+        "webp",
+        "avif",
+        "heic",
+        "heif",
+        "pdf",
+        "md",
+        "markdown",
+        "json",
+        "csv",
+        "yaml",
+        "yml",
+        "xlsx",
+      ],
+    },
+  ];
+
   let inputPath = $state("");
   let outputPath = $state("");
   let inputFormat = $state("png");
@@ -43,7 +67,25 @@
   let height = $state<number | "">("");
   let busy = $state(false);
   let message = $state<string | null>(null);
+  let lastJobId = $state<string | null>(null);
   let error = $state<string | null>(null);
+
+  let {
+    onOpenHistory,
+  }: {
+    onOpenHistory?: () => void;
+  } = $props();
+
+  function applyInputPath(path: string) {
+    inputPath = path;
+    const ext = path.split(".").pop()?.toLowerCase() ?? "";
+    if (INPUT_FORMATS.includes(ext) || (ext === "jpeg" && INPUT_FORMATS.includes("jpg"))) {
+      inputFormat = ext === "jpeg" ? "jpg" : ext;
+    }
+    if (!outputPath.trim()) {
+      outputPath = suggestSiblingPath(path, outputFormat);
+    }
+  }
 
   $effect(() => {
     const rev = getShellRevision();
@@ -51,16 +93,13 @@
     const paths = getShellPaths();
     if (rev === 0 || paths.length === 0) return;
     if (action !== "open" && action !== "convert") return;
-    inputPath = paths[0] ?? "";
-    const ext = inputPath.split(".").pop()?.toLowerCase() ?? "";
-    if (INPUT_FORMATS.includes(ext) || (ext === "jpeg" && INPUT_FORMATS.includes("jpg"))) {
-      inputFormat = ext === "jpeg" ? "jpg" : ext;
-    }
+    applyInputPath(paths[0] ?? "");
   });
 
   async function onSubmit(e: Event) {
     e.preventDefault();
     message = null;
+    lastJobId = null;
     error = null;
 
     if (!inputPath.trim() || !outputPath.trim()) {
@@ -86,7 +125,8 @@
         outputFormat,
         options,
       });
-      message = `Done — wrote ${out.bytes_written} bytes to ${out.output_path} (${out.job_id}).`;
+      lastJobId = out.job_id;
+      message = `Done — wrote ${out.bytes_written} bytes to ${out.output_path}.`;
     } catch (err) {
       error = formatError(err);
     } finally {
@@ -113,12 +153,22 @@
       showImageOptions={true}
       inputFormats={INPUT_FORMATS}
       outputFormats={OUTPUT_FORMATS}
+      inputPicker="file"
+      outputPicker="save"
+      inputFilters={INPUT_FILTERS}
+      outputFilters={[{ name: outputFormat.toUpperCase(), extensions: [outputFormat === "jpg" ? "jpg" : outputFormat] }]}
+      onInputPicked={applyInputPath}
     />
 
     <div class="actions">
       <button type="submit" class="primary" disabled={busy}>
         {busy ? "Converting…" : "Convert"}
       </button>
+      {#if lastJobId && onOpenHistory}
+        <button type="button" class="ghost" onclick={() => onOpenHistory()}>
+          View in History
+        </button>
+      {/if}
     </div>
 
     {#if message}
@@ -164,18 +214,28 @@
   .actions {
     display: flex;
     gap: var(--space-3);
+    flex-wrap: wrap;
   }
 
-  .primary {
+  .primary,
+  .ghost {
     appearance: none;
     border: 0;
     border-radius: var(--radius-md);
     padding: var(--space-3) var(--space-5);
-    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
-    color: #fff;
     font-weight: 600;
     cursor: pointer;
     transition: opacity var(--motion-fast) var(--motion-ease);
+  }
+
+  .primary {
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
+    color: #fff;
+  }
+
+  .ghost {
+    background: color-mix(in srgb, var(--color-text) 8%, transparent);
+    color: var(--color-text);
   }
 
   .primary:disabled {
