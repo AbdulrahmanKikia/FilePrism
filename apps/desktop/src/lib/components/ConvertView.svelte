@@ -1,6 +1,11 @@
 <script lang="ts">
   import { formatError, isTauri, runJob, type JobOptions } from "$lib/api";
-  import { suggestSiblingPath } from "$lib/dialogs";
+  import {
+    extensionOf,
+    normalizeFormatExt,
+    replaceExtension,
+    suggestSiblingPath,
+  } from "$lib/dialogs";
   import {
     getShellAction,
     getShellPaths,
@@ -35,6 +40,8 @@
     "xlsx",
   ];
 
+  const IMAGE_FORMATS = new Set(["png", "jpg", "webp", "avif", "heic"]);
+
   const INPUT_FILTERS = [
     {
       name: "Convertible files",
@@ -62,7 +69,7 @@
   let outputPath = $state("");
   let inputFormat = $state("png");
   let outputFormat = $state("webp");
-  let quality = $state<number | "">("");
+  let quality = $state(100);
   let width = $state<number | "">("");
   let height = $state<number | "">("");
   let busy = $state(false);
@@ -70,21 +77,36 @@
   let lastJobId = $state<string | null>(null);
   let error = $state<string | null>(null);
 
+  /** Skip one path rewrite after we just inferred format from the path. */
+  let skipFormatToPath = $state(false);
+
   let {
     onOpenHistory,
   }: {
     onOpenHistory?: () => void;
   } = $props();
 
+  const imageJob = $derived(
+    IMAGE_FORMATS.has(inputFormat) || IMAGE_FORMATS.has(outputFormat),
+  );
+
   function applyInputPath(path: string) {
     inputPath = path;
-    const ext = path.split(".").pop()?.toLowerCase() ?? "";
-    if (INPUT_FORMATS.includes(ext) || (ext === "jpeg" && INPUT_FORMATS.includes("jpg"))) {
-      inputFormat = ext === "jpeg" ? "jpg" : ext;
+    const ext = normalizeFormatExt(extensionOf(path));
+    if (INPUT_FORMATS.includes(ext)) {
+      inputFormat = ext;
     }
     if (!outputPath.trim()) {
       outputPath = suggestSiblingPath(path, outputFormat);
     }
+  }
+
+  function syncFormatFromOutputPath(path: string) {
+    const ext = normalizeFormatExt(extensionOf(path));
+    if (!ext || !OUTPUT_FORMATS.includes(ext)) return;
+    if (ext === outputFormat) return;
+    skipFormatToPath = true;
+    outputFormat = ext;
   }
 
   $effect(() => {
@@ -94,6 +116,32 @@
     if (rev === 0 || paths.length === 0) return;
     if (action !== "open" && action !== "convert") return;
     applyInputPath(paths[0] ?? "");
+  });
+
+  // Format → path: keep output extension aligned with selected format.
+  $effect(() => {
+    const fmt = outputFormat;
+    if (skipFormatToPath) {
+      skipFormatToPath = false;
+      return;
+    }
+    const path = outputPath.trim();
+    if (!path) {
+      const input = inputPath.trim();
+      if (input) outputPath = suggestSiblingPath(input, fmt);
+      return;
+    }
+    const current = normalizeFormatExt(extensionOf(path));
+    const fileExt = fmt === "jpg" ? "jpg" : fmt;
+    if (current === fileExt) return;
+    outputPath = replaceExtension(path, fileExt);
+  });
+
+  // Leaving image mode: drop resize so non-image jobs don't send stale values.
+  $effect(() => {
+    if (imageJob) return;
+    width = "";
+    height = "";
   });
 
   async function onSubmit(e: Event) {
@@ -114,9 +162,11 @@
     busy = true;
     try {
       const options: JobOptions = {};
-      if (quality !== "") options.quality = Number(quality);
-      if (width !== "") options.width = Number(width);
-      if (height !== "") options.height = Number(height);
+      if (imageJob) {
+        options.quality = Number(quality);
+        if (width !== "") options.width = Number(width);
+        if (height !== "") options.height = Number(height);
+      }
 
       const out = await runJob({
         inputPath: inputPath.trim(),
@@ -150,7 +200,8 @@
       bind:quality
       bind:width
       bind:height
-      showImageOptions={true}
+      showQuality={imageJob}
+      showResize={imageJob}
       inputFormats={INPUT_FORMATS}
       outputFormats={OUTPUT_FORMATS}
       inputPicker="file"
@@ -158,6 +209,8 @@
       inputFilters={INPUT_FILTERS}
       outputFilters={[{ name: outputFormat.toUpperCase(), extensions: [outputFormat === "jpg" ? "jpg" : outputFormat] }]}
       onInputPicked={applyInputPath}
+      onOutputPicked={syncFormatFromOutputPath}
+      onOutputPathChange={syncFormatFromOutputPath}
     />
 
     <div class="actions">
