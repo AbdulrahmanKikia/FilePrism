@@ -2,8 +2,16 @@
   /** Shared path / format / options form used by Convert, Compress, Archives. */
 
   import { isTauri } from "$lib/api";
-  import { pickPath, type PathKind } from "$lib/dialogs";
+  import {
+    extensionFromPath,
+    normalizeFormatExt,
+    pickPath,
+    replaceExtension,
+    type PathKind,
+  } from "$lib/dialogs";
   import type { DialogFilter } from "@tauri-apps/plugin-dialog";
+
+  const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "webp", "avif", "heic", "heif"]);
 
   let {
     inputPath = $bindable(""),
@@ -11,7 +19,7 @@
     inputFormat = $bindable(""),
     outputFormat = $bindable(""),
     password = $bindable(""),
-    quality = $bindable<number | "">(""),
+    quality = $bindable<number | "">(100),
     width = $bindable<number | "">(""),
     height = $bindable<number | "">(""),
     showPassword = false,
@@ -52,6 +60,64 @@
   } = $props();
 
   let browsing = $state<"input" | "output" | null>(null);
+  /** Prevent format↔path sync from fighting itself. */
+  let syncing = false;
+
+  const isImageJob = $derived(
+    showImageOptions &&
+      (IMAGE_EXTS.has(normalizeFormatExt(inputFormat)) ||
+        IMAGE_EXTS.has(normalizeFormatExt(outputFormat))),
+  );
+
+  $effect(() => {
+    if (isImageJob) return;
+    if (width !== "") width = "";
+    if (height !== "") height = "";
+  });
+
+  function pathExtForFormat(fmt: string): string {
+    const n = normalizeFormatExt(fmt);
+    return n === "jpg" ? "jpg" : n || fmt;
+  }
+
+  function formatFromPathExt(ext: string): string | null {
+    const n = normalizeFormatExt(ext);
+    if (!n) return null;
+    if (outputFormats.includes(n)) return n;
+    if (n === "jpg" && outputFormats.includes("jpg")) return "jpg";
+    return null;
+  }
+
+  function syncPathFromFormat() {
+    if (syncing) return;
+    const path = outputPath.trim();
+    if (!path || !outputFormat) return;
+    const want = pathExtForFormat(outputFormat);
+    const have = normalizeFormatExt(extensionFromPath(path));
+    if (have === want) return;
+    syncing = true;
+    outputPath = replaceExtension(path, want);
+    syncing = false;
+  }
+
+  function syncFormatFromPath() {
+    if (syncing) return;
+    const path = outputPath.trim();
+    if (!path) return;
+    const matched = formatFromPathExt(extensionFromPath(path));
+    if (!matched || matched === normalizeFormatExt(outputFormat)) return;
+    syncing = true;
+    outputFormat = matched;
+    syncing = false;
+  }
+
+  function onOutputFormatChange() {
+    syncPathFromFormat();
+  }
+
+  function onOutputPathChange() {
+    syncFormatFromPath();
+  }
 
   async function browseInput() {
     if (!isTauri() || browsing) return;
@@ -82,7 +148,10 @@
         defaultPath: outputPath || inputPath || undefined,
         filters: outputFilters.length ? outputFilters : undefined,
       });
-      if (path) outputPath = path;
+      if (path) {
+        outputPath = path;
+        syncFormatFromPath();
+      }
     } finally {
       browsing = null;
     }
@@ -109,7 +178,14 @@
   <label class="field">
     <span>{outputLabel}</span>
     <div class="path-row">
-      <input type="text" bind:value={outputPath} placeholder="C:\path\to\output" autocomplete="off" />
+      <input
+        type="text"
+        bind:value={outputPath}
+        placeholder="C:\path\to\output"
+        autocomplete="off"
+        oninput={onOutputPathChange}
+        onchange={onOutputPathChange}
+      />
       <button
         type="button"
         class="browse"
@@ -139,13 +215,18 @@
     <label class="field">
       <span>Output format</span>
       {#if outputFormats.length}
-        <select bind:value={outputFormat}>
+        <select bind:value={outputFormat} onchange={onOutputFormatChange}>
           {#each outputFormats as fmt}
             <option value={fmt}>{fmt}</option>
           {/each}
         </select>
       {:else}
-        <input type="text" bind:value={outputFormat} placeholder="webp" />
+        <input
+          type="text"
+          bind:value={outputFormat}
+          placeholder="webp"
+          onchange={onOutputFormatChange}
+        />
       {/if}
     </label>
   </div>
@@ -157,20 +238,29 @@
     </label>
   {/if}
 
-  {#if showImageOptions}
-    <div class="row triple">
-      <label class="field">
-        <span>Quality (1–100)</span>
-        <input type="number" min="1" max="100" bind:value={quality} placeholder="85" />
+  {#if isImageJob}
+    <div class="image-opts">
+      <label class="field quality">
+        <span>Quality <em class="qval">{quality === "" ? "—" : quality}</em></span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          bind:value={quality}
+        />
       </label>
-      <label class="field">
-        <span>Width</span>
-        <input type="number" min="1" bind:value={width} placeholder="auto" />
-      </label>
-      <label class="field">
-        <span>Height</span>
-        <input type="number" min="1" bind:value={height} placeholder="auto" />
-      </label>
+
+      <div class="row dims">
+        <label class="field">
+          <span>Width</span>
+          <input type="number" min="1" bind:value={width} placeholder="auto" />
+        </label>
+        <label class="field">
+          <span>Height</span>
+          <input type="number" min="1" bind:value={height} placeholder="auto" />
+        </label>
+      </div>
     </div>
   {/if}
 </div>
@@ -188,13 +278,29 @@
     gap: var(--space-4);
   }
 
-  .row.triple {
-    grid-template-columns: 1fr 1fr 1fr;
+  .image-opts {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .quality input[type="range"] {
+    width: 100%;
+    padding: 0;
+    accent-color: var(--color-accent);
+    cursor: pointer;
+  }
+
+  .qval {
+    font-style: normal;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-muted);
+    font-weight: 500;
+    margin-left: var(--space-2);
   }
 
   @media (max-width: 720px) {
-    .row,
-    .row.triple {
+    .row {
       grid-template-columns: 1fr;
     }
   }

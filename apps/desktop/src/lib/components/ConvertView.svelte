@@ -1,6 +1,10 @@
 <script lang="ts">
   import { formatError, isTauri, runJob, type JobOptions } from "$lib/api";
-  import { suggestSiblingPath } from "$lib/dialogs";
+  import {
+    extensionFromPath,
+    normalizeFormatExt,
+    suggestSiblingPath,
+  } from "$lib/dialogs";
   import {
     getShellAction,
     getShellPaths,
@@ -35,6 +39,8 @@
     "xlsx",
   ];
 
+  const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "webp", "avif", "heic", "heif"]);
+
   const INPUT_FILTERS = [
     {
       name: "Convertible files",
@@ -62,7 +68,7 @@
   let outputPath = $state("");
   let inputFormat = $state("png");
   let outputFormat = $state("webp");
-  let quality = $state<number | "">("");
+  let quality = $state<number | "">(100);
   let width = $state<number | "">("");
   let height = $state<number | "">("");
   let busy = $state(false);
@@ -76,6 +82,11 @@
     onOpenHistory?: () => void;
   } = $props();
 
+  const isImageJob = $derived(
+    IMAGE_EXTS.has(normalizeFormatExt(inputFormat)) ||
+      IMAGE_EXTS.has(normalizeFormatExt(outputFormat)),
+  );
+
   function applyInputPath(path: string) {
     inputPath = path;
     const ext = path.split(".").pop()?.toLowerCase() ?? "";
@@ -83,7 +94,7 @@
       inputFormat = ext === "jpeg" ? "jpg" : ext;
     }
     if (!outputPath.trim()) {
-      outputPath = suggestSiblingPath(path, outputFormat);
+      outputPath = suggestSiblingPath(path, outputFormat === "jpg" ? "jpg" : outputFormat);
     }
   }
 
@@ -96,6 +107,13 @@
     applyInputPath(paths[0] ?? "");
   });
 
+  function pathMatchesFormat(path: string, format: string): boolean {
+    const pathExt = normalizeFormatExt(extensionFromPath(path));
+    const fmtExt = normalizeFormatExt(format);
+    if (!pathExt || !fmtExt) return false;
+    return pathExt === fmtExt;
+  }
+
   async function onSubmit(e: Event) {
     e.preventDefault();
     message = null;
@@ -106,6 +124,11 @@
       error = "Input and output paths are required.";
       return;
     }
+    if (!pathMatchesFormat(outputPath, outputFormat)) {
+      const pathExt = extensionFromPath(outputPath) || "(none)";
+      error = `Output path extension (.${pathExt}) does not match the selected format (${outputFormat}).`;
+      return;
+    }
     if (!isTauri()) {
       error = "Conversion requires the Tauri desktop shell (pnpm tauri dev).";
       return;
@@ -114,9 +137,11 @@
     busy = true;
     try {
       const options: JobOptions = {};
-      if (quality !== "") options.quality = Number(quality);
-      if (width !== "") options.width = Number(width);
-      if (height !== "") options.height = Number(height);
+      if (isImageJob) {
+        if (quality !== "") options.quality = Number(quality);
+        if (width !== "") options.width = Number(width);
+        if (height !== "") options.height = Number(height);
+      }
 
       const out = await runJob({
         inputPath: inputPath.trim(),
