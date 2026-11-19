@@ -1,12 +1,20 @@
 <script lang="ts">
   import { formatError, isTauri, runJob } from "$lib/api";
-  import { suggestSiblingPath, type PathKind } from "$lib/dialogs";
+  import {
+    extensionOf,
+    normalizeFormatExt,
+    replaceExtension,
+    suggestSiblingPath,
+    type PathKind,
+  } from "$lib/dialogs";
   import {
     getShellAction,
     getShellPaths,
     getShellRevision,
   } from "$lib/shell.svelte";
   import JobForm from "./JobForm.svelte";
+
+  const OUTPUT_FORMATS = ["zip", "tar", "7z"];
 
   let inputPath = $state("");
   let outputPath = $state("");
@@ -16,6 +24,7 @@
   let busy = $state(false);
   let message = $state<string | null>(null);
   let error = $state<string | null>(null);
+  let skipFormatToPath = $state(false);
 
   const inputPicker = $derived<PathKind>(inputFormat === "dir" ? "directory" : "file");
 
@@ -26,6 +35,13 @@
     }
   }
 
+  function syncFormatFromOutputPath(path: string) {
+    const ext = normalizeFormatExt(extensionOf(path));
+    if (!OUTPUT_FORMATS.includes(ext) || ext === outputFormat) return;
+    skipFormatToPath = true;
+    outputFormat = ext;
+  }
+
   $effect(() => {
     const rev = getShellRevision();
     const action = getShellAction();
@@ -34,6 +50,22 @@
     if (action !== "compress") return;
     inputFormat = "file";
     applyInputPath(paths[0] ?? "");
+  });
+
+  $effect(() => {
+    const fmt = outputFormat;
+    if (skipFormatToPath) {
+      skipFormatToPath = false;
+      return;
+    }
+    const path = outputPath.trim();
+    if (!path) {
+      const input = inputPath.trim();
+      if (input) outputPath = suggestSiblingPath(input, fmt);
+      return;
+    }
+    if (normalizeFormatExt(extensionOf(path)) === fmt) return;
+    outputPath = replaceExtension(path, fmt);
   });
 
   async function onSubmit(e: Event) {
@@ -83,7 +115,7 @@
       bind:password
       showPassword={true}
       inputFormats={["file", "dir"]}
-      outputFormats={["zip", "tar", "7z"]}
+      outputFormats={OUTPUT_FORMATS}
       inputLabel="Source path"
       outputLabel="Archive path"
       inputHint={inputFormat === "dir" ? "Folder to pack" : "File to pack"}
@@ -92,6 +124,8 @@
       outputPicker="save"
       outputFilters={[{ name: outputFormat.toUpperCase(), extensions: [outputFormat] }]}
       onInputPicked={applyInputPath}
+      onOutputPicked={syncFormatFromOutputPath}
+      onOutputPathChange={syncFormatFromOutputPath}
     />
 
     <div class="actions">

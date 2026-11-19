@@ -17,6 +17,32 @@ export function suggestSiblingPath(inputPath: string, newExt: string): string {
   return `${dir}${stem}.${ext}`;
 }
 
+/** Lowercase file extension without dot; empty if none. */
+export function extensionOf(path: string): string {
+  const trimmed = path.trim().replace(/\\/g, "/");
+  const base = trimmed.includes("/") ? trimmed.slice(trimmed.lastIndexOf("/") + 1) : trimmed;
+  if (!base.includes(".")) return "";
+  return base.slice(base.lastIndexOf(".") + 1).toLowerCase();
+}
+
+/** Map common aliases to the format ids used in Convert / Compress selects. */
+export function normalizeFormatExt(ext: string): string {
+  const e = ext.replace(/^\./, "").toLowerCase();
+  if (e === "jpeg") return "jpg";
+  if (e === "yml") return "yaml";
+  if (e === "heif") return "heic";
+  if (e === "markdown") return "md";
+  if (e === "tgz" || e === "gz") return "tar";
+  return e;
+}
+
+/** Rewrite the final extension of `path` (keeps directory + stem). */
+export function replaceExtension(path: string, newExt: string): string {
+  const trimmed = path.trim();
+  if (!trimmed) return "";
+  return suggestSiblingPath(trimmed, newExt.replace(/^\./, ""));
+}
+
 export function suggestDirBeside(inputPath: string): string {
   const trimmed = inputPath.trim();
   if (!trimmed) return "";

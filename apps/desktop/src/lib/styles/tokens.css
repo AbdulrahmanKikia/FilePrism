@@ -46,6 +46,7 @@
 
   /* Layout */
   --sidebar-width: 220px;
+  --sidebar-width-collapsed: 72px;
 }
 
 @media (prefers-color-scheme: light) {

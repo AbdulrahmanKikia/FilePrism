@@ -11,10 +11,12 @@
     inputFormat = $bindable(""),
     outputFormat = $bindable(""),
     password = $bindable(""),
-    quality = $bindable<number | "">(""),
+    quality = $bindable(100),
     width = $bindable<number | "">(""),
     height = $bindable<number | "">(""),
     showPassword = false,
+    showQuality = false,
+    showResize = false,
     showImageOptions = false,
     inputFormats = [] as string[],
     outputFormats = [] as string[],
@@ -27,16 +29,21 @@
     inputFilters = [] as DialogFilter[],
     outputFilters = [] as DialogFilter[],
     onInputPicked = undefined as ((path: string) => void) | undefined,
+    onOutputPicked = undefined as ((path: string) => void) | undefined,
+    onOutputPathChange = undefined as ((path: string) => void) | undefined,
   }: {
     inputPath?: string;
     outputPath?: string;
     inputFormat?: string;
     outputFormat?: string;
     password?: string;
-    quality?: number | "";
+    quality?: number;
     width?: number | "";
     height?: number | "";
     showPassword?: boolean;
+    showQuality?: boolean;
+    showResize?: boolean;
+    /** @deprecated Prefer showQuality / showResize. Enables both when true. */
     showImageOptions?: boolean;
     inputFormats?: string[];
     outputFormats?: string[];
@@ -49,7 +56,12 @@
     inputFilters?: DialogFilter[];
     outputFilters?: DialogFilter[];
     onInputPicked?: (path: string) => void;
+    onOutputPicked?: (path: string) => void;
+    onOutputPathChange?: (path: string) => void;
   } = $props();
+
+  const qualityVisible = $derived(showQuality || showImageOptions);
+  const resizeVisible = $derived(showResize || showImageOptions);
 
   let browsing = $state<"input" | "output" | null>(null);
 
@@ -82,10 +94,19 @@
         defaultPath: outputPath || inputPath || undefined,
         filters: outputFilters.length ? outputFilters : undefined,
       });
-      if (path) outputPath = path;
+      if (path) {
+        outputPath = path;
+        onOutputPicked?.(path);
+      }
     } finally {
       browsing = null;
     }
+  }
+
+  function onOutputInput(e: Event) {
+    const value = (e.currentTarget as HTMLInputElement).value;
+    outputPath = value;
+    onOutputPathChange?.(value);
   }
 </script>
 
@@ -109,7 +130,13 @@
   <label class="field">
     <span>{outputLabel}</span>
     <div class="path-row">
-      <input type="text" bind:value={outputPath} placeholder="C:\path\to\output" autocomplete="off" />
+      <input
+        type="text"
+        value={outputPath}
+        oninput={onOutputInput}
+        placeholder="C:\path\to\output"
+        autocomplete="off"
+      />
       <button
         type="button"
         class="browse"
@@ -157,12 +184,18 @@
     </label>
   {/if}
 
-  {#if showImageOptions}
-    <div class="row triple">
-      <label class="field">
-        <span>Quality (1–100)</span>
-        <input type="number" min="1" max="100" bind:value={quality} placeholder="85" />
-      </label>
+  {#if qualityVisible}
+    <label class="field quality">
+      <span class="quality-label">
+        <span>Quality</span>
+        <strong>{quality}</strong>
+      </span>
+      <input type="range" min="1" max="100" bind:value={quality} />
+    </label>
+  {/if}
+
+  {#if resizeVisible}
+    <div class="row">
       <label class="field">
         <span>Width</span>
         <input type="number" min="1" bind:value={width} placeholder="auto" />
@@ -188,13 +221,8 @@
     gap: var(--space-4);
   }
 
-  .row.triple {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-
   @media (max-width: 720px) {
-    .row,
-    .row.triple {
+    .row {
       grid-template-columns: 1fr;
     }
   }
@@ -215,6 +243,27 @@
   .field small {
     color: var(--color-muted);
     font-size: 0.75rem;
+  }
+
+  .quality-label {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .quality-label strong {
+    font-variant-numeric: tabular-nums;
+    color: var(--color-accent);
+  }
+
+  .quality input[type="range"] {
+    width: 100%;
+    accent-color: var(--color-accent);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
   .path-row {
