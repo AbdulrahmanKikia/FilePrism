@@ -5,6 +5,30 @@ import { isTauri } from "$lib/api";
 
 export type PathKind = "file" | "directory" | "save";
 
+/** Lowercase extension without leading dot; `jpeg` → `jpg`. */
+export function normalizeFormatExt(ext: string): string {
+  const e = ext.replace(/^\./, "").toLowerCase();
+  if (e === "jpeg") return "jpg";
+  return e;
+}
+
+/** File extension of a path (lowercase, no leading dot), or empty. */
+export function extensionFromPath(path: string): string {
+  const trimmed = path.trim();
+  if (!trimmed) return "";
+  const normalized = trimmed.replace(/\\/g, "/");
+  const slash = normalized.lastIndexOf("/");
+  const base = slash >= 0 ? normalized.slice(slash + 1) : normalized;
+  const dot = base.lastIndexOf(".");
+  if (dot <= 0 || dot === base.length - 1) return "";
+  return base.slice(dot + 1).toLowerCase();
+}
+
+/** Replace the final extension of `path` (keeps stem and directory). */
+export function replaceExtension(path: string, newExt: string): string {
+  return suggestSiblingPath(path, newExt);
+}
+
 export function suggestSiblingPath(inputPath: string, newExt: string): string {
   const trimmed = inputPath.trim();
   if (!trimmed) return "";

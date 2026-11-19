@@ -1,6 +1,11 @@
 <script lang="ts">
   import { formatError, isTauri, runJob } from "$lib/api";
-  import { suggestSiblingPath, type PathKind } from "$lib/dialogs";
+  import {
+    extensionFromPath,
+    normalizeFormatExt,
+    suggestSiblingPath,
+    type PathKind,
+  } from "$lib/dialogs";
   import {
     getShellAction,
     getShellPaths,
@@ -43,6 +48,12 @@
 
     if (!inputPath.trim() || !outputPath.trim()) {
       error = "Input and output paths are required.";
+      return;
+    }
+    const pathExt = normalizeFormatExt(extensionFromPath(outputPath));
+    const fmtExt = normalizeFormatExt(outputFormat);
+    if (!pathExt || pathExt !== fmtExt) {
+      error = `Output path extension (.${pathExt || "none"}) does not match the selected format (${outputFormat}).`;
       return;
     }
     if (!isTauri()) {
